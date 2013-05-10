@@ -26,6 +26,7 @@ class Agent(object):
         self.commands = []
         
         for tank in mytanks:
+            """Once pfcalc is done we can finish this"""
             pass
         
         results = self.bzrc.do_commands(self.commands)
