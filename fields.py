@@ -66,7 +66,8 @@ def generate_fields(x, y):
     att = [fg for fg in fieldGenerators if fg['type'] == "pull"]
     x1, y1 = generate_attractive_fields(x, y, att[0])
     x2, y2 = generate_repulsive_fields(x, y)
-    return (x1+x2), (y1+y2)
+    x3, y3 = generate_tangental_fields(x, y)
+    return (x1+x2+x3), (y1+y2+y3)
 
 def generate_attractive_fields(x, y, fg):
     
@@ -98,6 +99,29 @@ def generate_repulsive_fields(x, y):
             #print fg
             distance = math.sqrt( (fg['center'][0] - x)**2 +  (fg['center'][1] - y)**2 )
             theta=math.atan2((fg['center'][1] - y), (fg['center'][0] - x))
+        
+            if distance<fg['radius']:
+                fx += -math.copysign(1000, math.cos(theta))
+                fy += -math.copysign(1000, math.sin(theta))
+            elif fg['radius'] <= distance <= (SPREAD + fg['radius']):
+                fx += -fg['scale'] * (SPREAD + fg['radius'] - distance) * math.cos(theta)
+                fy += -fg['scale'] * (SPREAD + fg['radius'] - distance) * math.sin(theta)
+            elif distance>(SPREAD+fg['radius']):
+                fx += 0.0
+                fy += 0.0
+            
+    return fx, fy
+    
+def generate_tangental_fields(x, y):
+    
+    fx = 0.0
+    fy = 0.0
+    
+    for fg in fieldGenerators:
+        if fg['type'] == 'push':
+            #print fg
+            distance = math.sqrt( (fg['center'][0] - x)**2 +  (fg['center'][1] - y)**2 )
+            theta=math.atan2((fg['center'][1] - y), (fg['center'][0] - x)) + math.pi/4
         
             if distance<fg['radius']:
                 fx += -math.copysign(1000, math.cos(theta))
