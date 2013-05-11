@@ -55,17 +55,13 @@ VEC_LEN = 0.75 * WORLDSIZE / SAMPLES
 ANIMATION_MIN = 0
 ANIMATION_MAX = 500
 ANIMATION_FRAMES = 50
-<<<<<<< HEAD
-SPREAD=15
-=======
+
 SPREAD=30
->>>>>>> 0eb48e6265e9cfe9371200c4fc18a69dd1384f51
 
 
 ########################################################################
 # Field and Obstacle Definitions
 
-<<<<<<< HEAD
 def generate_fields(x, y):
     att = [fg for fg in fieldGenerators if fg['type'] == "pull"]
     x1, y1 = generate_attractive_fields(x, y, att[0])
@@ -136,180 +132,14 @@ flg1={'radius' : 2.5,'center' : (-370,0), 'type' : "pull", 'scale' : .5}
 flg2={'radius' : 2.5,'center' : (0,-370), 'type' : "pull", 'scale' : .5}  
 flg3={'radius' : 2.5,'center' : (370,0), 'type' : "pull", 'scale' : .5}  
 flg4={'radius' : 2.5,'center' : (0,370), 'type' : "pull", 'scale' : .5}         
-=======
-def generate_field_function(scale):
-    #this determines our arrow at the point x y I've added the attractive field case
-    def function(x, y):
-        '''User-defined field function.'''
-        fx=0.0
-        fy=0.0
-        
-        for fg in fieldGenerators:
-            distance = (((fg['center'][0]-x) ** 2 + (fg['center'][1]-y) ** 2) ** 0.5)//2
-            if abs(fg['center'][0]-x)>abs(fg['center'][1]-y): 
-                    
-                theta= math.atan((fg['center'][0]-x)//(fg['center'][1]-y))   
-            else: 
-                theta= math.atan((fg['center'][1]-y)//(fg['center'][0]-x))
-            if fg['type']=="pull":
-                if distance<fg['radius']:
-                    fx=0.0
-                    fy=0.0
-                    
-                elif fg['radius']<=distance<=(SPREAD+fg['radius']):
-                   if fg['center'][0]==x and y>fg['center'][1]:
-       	   				fx=0
-       	   				fy=fg['scale']*(distance-fg['radius'])*-1
-                   elif fg['center'][0]==x and y<fg['center'][1]:
-        				fx=0
-        				fy=fg['scale']*(distance-fg['radius'])*1
-                   elif fg['center'][1]==y and x<fg['center'][0]:
-        				fx=fg['scale']*(distance-fg['radius'])*1
-        				fy=0
-                   elif fg['center'][1]==y and x>fg['center'][0]:
-                        fx=fg['scale']*(distance-fg['radius'])*-1
-                        fy=0 
-                    
-                   elif ((fg['center'][0]-x)==(fg['center'][1]-y)or(fg['center'][0]-x)==(fg['center'][1]-abs(y))) and x>fg['center'][0]:
-                           fy=fg['scale']*(distance-fg['radius'])*math.cos(theta)*-1
-                           fx=fg['scale']*(distance-fg['radius'])*math.sin(theta)*-1
-                       
-                   elif abs(fg['center'][0]-x)>abs(fg['center'][1]-y):
-                        
-                        fy=fg['scale']*(distance-fg['radius'])*math.cos(theta)
-                        fx=fg['scale']*(distance-fg['radius'])*math.sin(theta)
-                        if y>fg['center'][1]:
-                            fy*=-1
-                            fx*=-1
-                   else:
-                         
-                        if x>fg['center'][0]and abs(fg['center'][0]-x)<abs(fg['center'][1]-y):
-                            fx=fg['scale']*(distance-fg['radius'])*math.cos(theta)*-1
-                            fy=fg['scale']*(distance-fg['radius'])*math.sin(theta)*-1
-                        else:
-                            fx=fg['scale']*(distance-fg['radius'])*math.cos(theta)
-                            fy=fg['scale']*(distance-fg['radius'])*math.sin(theta)
-                        
-                    
-                elif distance>(SPREAD+fg['radius']):
-                    if fg['center'][0]==x and y>fg['center'][1]:
-       	   				fx=0
-       	   				fy=fg['scale']*-1
-                    elif fg['center'][0]==x and y<fg['center'][1]:
-                        fx=0
-                        fy=fg['scale']*1
-                    elif fg['center'][1]==y and x<fg['center'][0]:
-                        fx=fg['scale']*1
-                        fy=0
-                    elif fg['center'][1]==y and x>fg['center'][0]:
-                        fx=fg['scale']*-1
-                        fy=0                    
-                    
-                    elif abs(fg['center'][0]-x)>abs(fg['center'][1]-y): 
-                        if y>fg['center'][0]:
-                            fy=fg['scale']*math.cos(theta)*-1
-                            fx=fg['scale']*math.sin(theta)*-1
-                    
-                        else:
-                            fy=fg['scale']*math.cos(theta)
-                            fx=fg['scale']*math.sin(theta)
-                    else:
-                        if x>fg['center'][0]:
-                            fx=fg['scale']*math.cos(theta)*-1
-                            fy=fg['scale']*math.sin(theta)*-1
-                    
-                        else:
-                            fx=fg['scale']*math.cos(theta)
-                            fy=fg['scale']*math.sin(theta)
-            
-                
-                    
-            if fg['type']=="push":
-                if distance<fg['radius']:
-                    if fg['center'][0]==x and y>fg['center'][1]:
-       	   				fx+=0
-       	   				fy+=-1
-                    elif fg['center'][0]==x and y<fg['center'][1]:
-        				fx+=0
-        				fy+=1
-                    elif fg['center'][1]==y and x<fg['center'][0]:
-        				fx+=1
-        				fy+=0
-                    elif fg['center'][1]==y and x>fg['center'][0]:
-                        fx+=-1
-                        fy+=0
-                    #elif abs(fg['center'][0]-x)>abs(fg['center'][1]-y):
-                    elif x>fg['center'][0]:
-                        fx+=math.cos(theta)
-                        fy+=math.sin(theta)    
-                    else:
-                        fx+=math.cos(theta)*-1
-                        fy+=math.sin(theta)*-1
-                if fg['radius']<=distance<=(SPREAD+fg['radius']):
-                    if fg['center'][0]==x and y>fg['center'][1]:
-       	   				fx+=0
-       	   				fy+=fg['scale']*(SPREAD+fg['radius']-distance)*-1
-                    elif fg['center'][0]==x and y<fg['center'][1]:
-        				fx+=0
-        				fy+=fg['scale']*(SPREAD+fg['radius']-distance)**1
-                    elif fg['center'][1]==y and x<fg['center'][0]:
-        				fx+=fg['scale']*(SPREAD+fg['radius']-distance)**1
-        				fy+=0
-                    elif fg['center'][1]==y and x>fg['center'][0]:
-                        fx+=fg['scale']*(SPREAD+fg['radius']-distance)**-1
-                        fy+=0
-                    elif abs(fg['center'][0]-x)>abs(fg['center'][1]-y):
-                        fy+=fg['scale']*(SPREAD+fg['radius']-distance)*math.cos(theta)
-                        fx+=fg['scale']*(SPREAD+fg['radius']-distance)*math.sin(theta)
-                        if y<fg['center'][1]:
-                            fy+=fg['scale']*(SPREAD+fg['radius']-distance)*math.cos(theta)*-2
-                            fx+=fg['scale']*(SPREAD+fg['radius']-distance)*math.sin(theta)*-2
-                    elif x>fg['center'][0]:
-                        fx+=fg['scale']*(SPREAD+fg['radius']-distance)*math.cos(theta)
-                        fy+=fg['scale']*(SPREAD+fg['radius']-distance)*math.sin(theta)
-                    else:
-                        fx+=fg['scale']*(SPREAD+fg['radius']-distance)*math.cos(theta)*-1
-                        fy+=fg['scale']*(SPREAD+fg['radius']-distance)*math.sin(theta)*-1
-                if distance>(SPREAD+fg['radius']):
-					fx+=0.0
-					fy+=0.0
-                    
-        
-        return fx, fy
-    return function
 
-OBSTACLES = [((150.0, 150.0), (150.0, 90.0), (90.0, 90.0), (90.0, 150.0))]
-'''((150.0, 210.0), (150.0, 150.0), (90.0, 150.0), (90.0, 210.0)),
-  ((210.0, 150.0), (210.0, 90.0), (150.0, 90.0), (150.0, 150.0)),
-   ((150.0, -90.0), (150.0, -150.0), (90.0, -150.0), (90.0, -90.0)),
-
-    ((210.0, -90.0), (210.0, -150.0), (150.0, -150.0), (150.0, -90.0)), 
-    ((150.0, -150.0), (150.0, -210.0), (90.0, -210.0), (90.0, -150.0)),
-     ((-90.0, -90.0), (-90.0, -150.0), (-150.0, -150.0), (-150.0, -90.0)),
-      ((-90.0, -150.0), (-90.0, -210.0), (-150.0, -210.0), (-150.0, -150.0)),
-       ((-150.0, -90.0), (-150.0, -150.0), (-210.0, -150.0), (-210.0, -90.0)),
-        ((-90.0, 150.0), (-90.0, 90.0), (-150.0, 90.0), (-150.0, 150.0)), 
-        ((-90.0, 210.0), (-90.0, 150.0), (-150.0, 150.0), (-150.0, 210.0)), 
-        ((-150.0, 150.0), (-150.0, 90.0), (-210.0, 90.0), (-210.0, 150.0)),
-         ((10.0, 60.0), (10.0, -60.0), (-10.0, -60.0), (-10.0, 60.0))]
-'''
-        
-FLAGS=[(-370,0),(0,-370),(370,0),(0,370)]
-flg1={'radius' : 2.5,'center' : (-150,0), 'type' : "pull", 'scale' : .9}  
-flg2={'radius' : 2.5,'center' : (0,-370), 'type' : "pull", 'scale' : 0}  
-flg3={'radius' : 2.5,'center' : (370,0), 'type' : "pull", 'scale' : 0}  
-flg4={'radius' : 2.5,'center' : (0,370), 'type' : "pull", 'scale' : 0}         
->>>>>>> 0eb48e6265e9cfe9371200c4fc18a69dd1384f51
 fieldGenerators = [flg1]
 
 ########################################################################
 # Helper Functions
 
 def obsRadiusAndCenter(tup):
-<<<<<<< HEAD
-    #print tup
-=======
->>>>>>> 0eb48e6265e9cfe9371200c4fc18a69dd1384f51
+
     xmin=float("inf")
     xmax=float("-inf")
     ymin=float("inf")
@@ -320,7 +150,6 @@ def obsRadiusAndCenter(tup):
         if pairs[0]<xmin:
             xmin=pairs[0]
         if pairs[1]>ymax:
-<<<<<<< HEAD
             ymax=pairs[1]
         if pairs[1]<ymin:
             ymin=pairs[1]
@@ -328,15 +157,7 @@ def obsRadiusAndCenter(tup):
     fg={'radius' : temp[0], 'center' : temp[1], 'type' : temp[2], 'scale' : .5}
     fieldGenerators.append(fg)
     #print fg
-=======
-            ymax=pairs[0]
-        if pairs[1]<ymin:
-            ymin=pairs[0]
-    temp=((((xmax-xmin)**2+(ymax-ymin)**2)**.5)/2,((xmax-xmin)//2+xmin,(ymax-ymin)//2+ymin),"push")
-    fg={'radius' : temp[0],'center' : temp[1], 'type' : temp[2], 'scale' : .01}
-    print(fg)
-    fieldGenerators.append(fg)
->>>>>>> 0eb48e6265e9cfe9371200c4fc18a69dd1384f51
+
     return temp
         
       
@@ -422,12 +243,9 @@ def plot_field(function):
 outfile = open(FILENAME, 'w')
 print >>outfile, gnuplot_header(-WORLDSIZE / 2, WORLDSIZE / 2)
 print >>outfile, draw_obstacles(OBSTACLES,FLAGS)
-<<<<<<< HEAD
+
 print >>outfile, plot_field(generate_fields)
-=======
-field_function = generate_field_function(150)
-print >>outfile, plot_field(field_function)
->>>>>>> 0eb48e6265e9cfe9371200c4fc18a69dd1384f51
+
 
 
 ########################################################################
@@ -454,13 +272,7 @@ gp = GnuplotProcess(persist=True)#this starts the GP process and makes it a pers
 gp.write(gnuplot_header(-WORLDSIZE / 2, WORLDSIZE / 2))#sets up the initialization
 gp.write(draw_obstacles(OBSTACLES,FLAGS))#draws the obstacles and now flags -josh
 
-    #for scale in cycle(anim_points):
-#field_function = generate_field_function(scale)-this line makes it an animation
-<<<<<<< HEAD
-gp.write(plot_field(generate_fields))
-=======
-gp.write(plot_field(field_function))
->>>>>>> 0eb48e6265e9cfe9371200c4fc18a69dd1384f51
-# this was originally part of the commented out for loop
 
-# vim: et sw=4 sts=4
+gp.write(plot_field(generate_fields))
+
+

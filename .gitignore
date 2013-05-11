@@ -1,4 +1,7 @@
 *.py[cod]
+*.py~
+test.py
+fields.gpi
 
 # C extensions
 *.so
