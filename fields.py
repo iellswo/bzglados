@@ -55,12 +55,88 @@ VEC_LEN = 0.75 * WORLDSIZE / SAMPLES
 ANIMATION_MIN = 0
 ANIMATION_MAX = 500
 ANIMATION_FRAMES = 50
+<<<<<<< HEAD
+SPREAD=15
+=======
 SPREAD=30
+>>>>>>> 0eb48e6265e9cfe9371200c4fc18a69dd1384f51
 
 
 ########################################################################
 # Field and Obstacle Definitions
 
+<<<<<<< HEAD
+def generate_fields(x, y):
+    att = [fg for fg in fieldGenerators if fg['type'] == "pull"]
+    x1, y1 = generate_attractive_fields(x, y, att[0])
+    x2, y2 = generate_repulsive_fields(x, y)
+    return (x1+x2), (y1+y2)
+
+def generate_attractive_fields(x, y, fg):
+    
+    fx = 0.0
+    fy = 0.0
+    
+    # return the vector for this location
+    distance = math.sqrt( (fg['center'][0] - x)**2 +  (fg['center'][1] - y)**2 )
+    theta=math.atan2((fg['center'][1] - y), (fg['center'][0] - x))
+    if distance<fg['radius']:
+        fx = 0
+        fx = 0
+    elif fg['radius'] <= distance <= (SPREAD + fg['radius']):
+        fx = fg['scale'] * (distance-fg['radius']) * math.cos(theta)
+        fy = fg['scale'] * (distance-fg['radius']) * math.sin(theta)
+    elif distance>(SPREAD+fg['radius']):
+        fx = fg['scale'] * math.cos(theta)
+        fy = fg['scale'] * math.sin(theta)
+    
+    return fx, fy
+    
+def generate_repulsive_fields(x, y):
+    
+    fx = 0.0
+    fy = 0.0
+    
+    for fg in fieldGenerators:
+        if fg['type'] == 'push':
+            #print fg
+            distance = math.sqrt( (fg['center'][0] - x)**2 +  (fg['center'][1] - y)**2 )
+            theta=math.atan2((fg['center'][1] - y), (fg['center'][0] - x))
+        
+            if distance<fg['radius']:
+                fx += -math.copysign(1000, math.cos(theta))
+                fy += -math.copysign(1000, math.sin(theta))
+            elif fg['radius'] <= distance <= (SPREAD + fg['radius']):
+                fx += -fg['scale'] * (SPREAD + fg['radius'] - distance) * math.cos(theta)
+                fy += -fg['scale'] * (SPREAD + fg['radius'] - distance) * math.sin(theta)
+            elif distance>(SPREAD+fg['radius']):
+                fx += 0.0
+                fy += 0.0
+            
+    return fx, fy
+    
+
+
+OBSTACLES = [((150.0, 150.0), (150.0, 90.0), (90.0, 90.0), (90.0, 150.0)),
+            ((150.0, 210.0), (150.0, 150.0), (90.0, 150.0), (90.0, 210.0)),
+            ((210.0, 150.0), (210.0, 90.0), (150.0, 90.0), (150.0, 150.0)),
+            ((150.0, -90.0), (150.0, -150.0), (90.0, -150.0), (90.0, -90.0)),
+            ((210.0, -90.0), (210.0, -150.0), (150.0, -150.0), (150.0, -90.0)), 
+            ((150.0, -150.0), (150.0, -210.0), (90.0, -210.0), (90.0, -150.0)),
+            ((-90.0, -90.0), (-90.0, -150.0), (-150.0, -150.0), (-150.0, -90.0)),
+            ((-90.0, -150.0), (-90.0, -210.0), (-150.0, -210.0), (-150.0, -150.0)),
+            ((-150.0, -90.0), (-150.0, -150.0), (-210.0, -150.0), (-210.0, -90.0)),
+            ((-90.0, 150.0), (-90.0, 90.0), (-150.0, 90.0), (-150.0, 150.0)), 
+            ((-90.0, 210.0), (-90.0, 150.0), (-150.0, 150.0), (-150.0, 210.0)), 
+            ((-150.0, 150.0), (-150.0, 90.0), (-210.0, 90.0), (-210.0, 150.0)),
+            ((10.0, 60.0), (10.0, -60.0), (-10.0, -60.0), (-10.0, 60.0))]
+         
+FLAGS=[(-370,0),(0,-370),(370,0),(0,370)]
+flg1={'radius' : 2.5,'center' : (-370,0), 'type' : "pull", 'scale' : .5}  
+flg2={'radius' : 2.5,'center' : (0,-370), 'type' : "pull", 'scale' : .5}  
+flg3={'radius' : 2.5,'center' : (370,0), 'type' : "pull", 'scale' : .5}  
+flg4={'radius' : 2.5,'center' : (0,370), 'type' : "pull", 'scale' : .5}         
+=======
 def generate_field_function(scale):
     #this determines our arrow at the point x y I've added the attractive field case
     def function(x, y):
@@ -223,12 +299,17 @@ flg1={'radius' : 2.5,'center' : (-150,0), 'type' : "pull", 'scale' : .9}
 flg2={'radius' : 2.5,'center' : (0,-370), 'type' : "pull", 'scale' : 0}  
 flg3={'radius' : 2.5,'center' : (370,0), 'type' : "pull", 'scale' : 0}  
 flg4={'radius' : 2.5,'center' : (0,370), 'type' : "pull", 'scale' : 0}         
+>>>>>>> 0eb48e6265e9cfe9371200c4fc18a69dd1384f51
 fieldGenerators = [flg1]
 
 ########################################################################
 # Helper Functions
 
 def obsRadiusAndCenter(tup):
+<<<<<<< HEAD
+    #print tup
+=======
+>>>>>>> 0eb48e6265e9cfe9371200c4fc18a69dd1384f51
     xmin=float("inf")
     xmax=float("-inf")
     ymin=float("inf")
@@ -239,6 +320,15 @@ def obsRadiusAndCenter(tup):
         if pairs[0]<xmin:
             xmin=pairs[0]
         if pairs[1]>ymax:
+<<<<<<< HEAD
+            ymax=pairs[1]
+        if pairs[1]<ymin:
+            ymin=pairs[1]
+    temp=((float(((xmax-xmin)**2+(ymax-ymin)**2)**.5))/2,(float(xmax-xmin)/2+xmin,float(ymax-ymin)/2+ymin),"push")
+    fg={'radius' : temp[0], 'center' : temp[1], 'type' : temp[2], 'scale' : .5}
+    fieldGenerators.append(fg)
+    #print fg
+=======
             ymax=pairs[0]
         if pairs[1]<ymin:
             ymin=pairs[0]
@@ -246,6 +336,7 @@ def obsRadiusAndCenter(tup):
     fg={'radius' : temp[0],'center' : temp[1], 'type' : temp[2], 'scale' : .01}
     print(fg)
     fieldGenerators.append(fg)
+>>>>>>> 0eb48e6265e9cfe9371200c4fc18a69dd1384f51
     return temp
         
       
@@ -331,8 +422,12 @@ def plot_field(function):
 outfile = open(FILENAME, 'w')
 print >>outfile, gnuplot_header(-WORLDSIZE / 2, WORLDSIZE / 2)
 print >>outfile, draw_obstacles(OBSTACLES,FLAGS)
+<<<<<<< HEAD
+print >>outfile, plot_field(generate_fields)
+=======
 field_function = generate_field_function(150)
 print >>outfile, plot_field(field_function)
+>>>>>>> 0eb48e6265e9cfe9371200c4fc18a69dd1384f51
 
 
 ########################################################################
@@ -361,7 +456,11 @@ gp.write(draw_obstacles(OBSTACLES,FLAGS))#draws the obstacles and now flags -jos
 
     #for scale in cycle(anim_points):
 #field_function = generate_field_function(scale)-this line makes it an animation
+<<<<<<< HEAD
+gp.write(plot_field(generate_fields))
+=======
 gp.write(plot_field(field_function))
+>>>>>>> 0eb48e6265e9cfe9371200c4fc18a69dd1384f51
 # this was originally part of the commented out for loop
 
 # vim: et sw=4 sts=4
