@@ -11,64 +11,22 @@ import math
 
 class PFGEN:
     
-    try:
-        from numpy import linspace
-    except ImportError:
-        # This is stolen from numpy.  If numpy is installed, you don't
-        # need this:
-        def linspace(start, stop, num=50, endpoint=True, retstep=False):
-            """Return evenly spaced numbers.
-
-            Return num evenly spaced samples from start to stop.  If
-            endpoint is True, the last sample is stop. If retstep is
-            True then return the step value used.
-            """
-            num = int(num)
-            if num <= 0:
-                return []
-            if endpoint:
-                if num == 1:
-                    return [float(start)]
-                step = (stop-start)/float((num-1))
-                y = [x * step + start for x in xrange(0, num - 1)]
-                y.append(stop)
-            else:
-                step = (stop-start)/float(num)
-                y = [x * step + start for x in xrange(0, num)]
-            if retstep:
-                return y, step
-            else:
-                return y
-
-
-    ########################################################################
-    # Constants
-    def __init__(self,WS,SP,OB,OS,GL,GR,GS,):
+    
+    def __init__(self, WS, SP, OB, OS, GL, GR, GS):
+        """Initialize variables"""
         self.spread=SP
         self.worldSize=WS
         self.obsScale=OS
-        self.goal={'radius' : GR,'center' : GL, 'type' : "pull", 'scale' : GS}
+        self.goal={'radius' : float(GR), 'center' : GL, 'type' : "pull", 'scale' : float(GS)}
         self.obstacles=OB
         self.fieldGenerators = []
-        self.obsRadiusAndCenter(OB)
+        for ob in OB:
+            self.obsRadiusAndCenter(ob)
 
-    def update(SP,OS,GS,GL,GR,GO):
-        self.spread=SP
-        self.obsScale=OS
-        elf.goal={'radius' : GR,'center' : GL, 'type' : "pull", 'scale' : GS}
+    def update(self, GL, GR, GS):
+        self.goal={'radius' : float(GR),'center' : GL, 'type' : "pull", 'scale' : float(GS)}
         
    
-    # Size of the world (one of the "constants" in bzflag):
-    WORLDSIZE = 800
-    # How many samples to take along each dimension:
-    SAMPLES = 25
-    # Change spacing by changing the relative length of the vectors.  It looks
-    # like scaling by 0.75 is pretty good, but this is adjustable:
-    VEC_LEN = 0.75 * WORLDSIZE / SAMPLES
-
-    spread=30
-
-
     ########################################################################
     # Field and Obstacle Definitions
 
@@ -76,7 +34,7 @@ class PFGEN:
         #this determines our arrow at the point x y I've added the attractive field case
      
        
-    def generate_repulsive_fields(x, y):
+    def generate_repulsive_fields(self, x, y):
         
         fx = 0.0
         fy = 0.0
@@ -88,86 +46,98 @@ class PFGEN:
                 theta=math.atan2((fg['center'][1] - y), (fg['center'][0] - x))
             
                 if distance<fg['radius']:
-                    fx += -math.copysign(1000, math.cos(theta))
-                    fy += -math.copysign(1000, math.sin(theta))
-                elif fg['radius'] <= distance <= (spread + fg['radius']):
-                    fx += -fg['scale'] * (spread + fg['radius'] - distance) * math.cos(theta)
-                    fy += -fg['scale'] * (spread + fg['radius'] - distance) * math.sin(theta)
-                elif distance>(spread+fg['radius']):
+                    fx += -math.copysign(10, math.cos(theta))
+                    fy += -math.copysign(10, math.sin(theta))
+                elif fg['radius'] <= distance <= (self.spread + fg['radius']):
+                    fx += -fg['scale'] * (self.spread + fg['radius'] - distance) * math.cos(theta)
+                    fy += -fg['scale'] * (self.spread + fg['radius'] - distance) * math.sin(theta)
+                elif distance>(self.spread+fg['radius']):
                     fx += 0.0
                     fy += 0.0
                 
         return fx, fy
-    def generate_attractive_fields(x, y, fg):
+    
+    def generate_attractive_fields(self, x, y, fg):
         
         fx = 0.0
         fy = 0.0
-        
         # return the vector for this location
-        distance = math.sqrt( (fg['center'][0] - x)**2 +  (fg['center'][1] - y)**2 )
-        theta=math.atan2((fg['center'][1] - y), (fg['center'][0] - x))
-        if distance<fg['radius']:
+        distance = math.sqrt( (fg['center'][0] - x)**2  +  (fg['center'][1] - y)**2 )
+        theta = math.atan2((fg['center'][1] - y), (fg['center'][0] - x))
+        if distance < fg['radius']:
             fx = 0
             fx = 0
-        elif fg['radius'] <= distance <= (spread + fg['radius']):
+        elif fg['radius'] <= distance <= (self.spread + fg['radius']):
             fx = fg['scale'] * (distance-fg['radius']) * math.cos(theta)
             fy = fg['scale'] * (distance-fg['radius']) * math.sin(theta)
-        elif distance>(spread+fg['radius']):
+        elif distance>(self.spread+fg['radius']):
             fx = fg['scale'] * math.cos(theta)
             fy = fg['scale'] * math.sin(theta)
         
         return fx, fy
+        
+    def generate_tangental_fields(self,x, y):
+        
+        fx = 0.0
+        fy = 0.0
+        
+        for fg in self.fieldGenerators:
+            if fg['type'] == 'push':
+                #print fg
+                distance = math.sqrt( (fg['center'][0] - x)**2 +  (fg['center'][1] - y)**2 )
+                theta = math.atan2((fg['center'][1] - y), (fg['center'][0] - x)) + math.pi/4
+            
+                if distance<fg['radius']:
+                    fx += -math.copysign(50, math.cos(theta))
+                    fy += -math.copysign(50, math.sin(theta))
+                elif fg['radius'] <= distance <= (self.spread + fg['radius']):
+                    fx += -fg['scale']*2 * (self.spread + fg['radius'] - distance) * math.cos(theta)
+                    fy += -fg['scale']*2 * (self.spread + fg['radius'] - distance) * math.sin(theta)
+                elif distance>(self.spread+fg['radius']):
+                    fx += 0.0
+                    fy += 0.0
+                
+        return fx, fy
 
-    def generate_fields(x, y):
-        att = [fg for fg in self.fieldGenerators if fg['type'] == "pull"]
-        x1, y1 = generate_attractive_fields(x, y, att[0])
-        x2, y2 = generate_repulsive_fields(x, y)
-        return (x1+x2), (y1+y2)
+    def generate_fields(self, x, y):
+        
+        x1, y1 = self.generate_attractive_fields(x, y, self.goal)
+        #print "attractive", x1, y1
+        x2, y2 = self.generate_repulsive_fields(x, y)
+        #print "repulsive", x2, y2
+        x3, y3 = self.generate_tangental_fields(x, y)
+        #print "tangental", x3, y3
+        return (x+x1+x2+x3), (y+y1+y2+y3)
                   
     
-    '''((150.0, 150.0), (150.0, 90.0), (90.0, 90.0), (90.0, 150.0)),
-    ((150.0, 210.0), (150.0, 150.0), (90.0, 150.0), (90.0, 210.0)),
-      ((210.0, 150.0), (210.0, 90.0), (150.0, 90.0), (150.0, 150.0)),
-       ((150.0, -90.0), (150.0, -150.0), (90.0, -150.0), (90.0, -90.0)),
-
-        ((210.0, -90.0), (210.0, -150.0), (150.0, -150.0), (150.0, -90.0)), 
-        ((150.0, -150.0), (150.0, -210.0), (90.0, -210.0), (90.0, -150.0)),
-         ((-90.0, -90.0), (-90.0, -150.0), (-150.0, -150.0), (-150.0, -90.0)),
-          ((-90.0, -150.0), (-90.0, -210.0), (-150.0, -210.0), (-150.0, -150.0)),
-           ((-150.0, -90.0), (-150.0, -150.0), (-210.0, -150.0), (-210.0, -90.0)),
-            ((-90.0, 150.0), (-90.0, 90.0), (-150.0, 90.0), (-150.0, 150.0)), 
-            ((-90.0, 210.0), (-90.0, 150.0), (-150.0, 150.0), (-150.0, 210.0)), 
-            ((-150.0, 150.0), (-150.0, 90.0), (-210.0, 90.0), (-210.0, 150.0)),
-             ((10.0, 60.0), (10.0, -60.0), (-10.0, -60.0), (-10.0, 60.0))]
-    '''
-
-    
+   
 
     ########################################################################
     # Helper Functions
 
    
 
-    def obsRadiusAndCenter(tup):
+    def obsRadiusAndCenter(self, tup):
         xmin=float("inf")
         xmax=float("-inf")
         ymin=float("inf")
         ymax=float("-inf")
         for pairs in tup:
-            if pairs[0]>xmax:
-                xmax=pairs[0]
-            if pairs[0]<xmin:
-                xmin=pairs[0]
-            if pairs[1]>ymax:
-                ymax=pairs[0]
-            if pairs[1]<ymin:
-                ymin=pairs[0]
-        temp=((((xmax-xmin)**2+(ymax-ymin)**2)**.5)/2,((xmax-xmin)//2+xmin,(ymax-ymin)//2+ymin),"push")
-        fg={'radius' : temp[0],'center' : temp[1], 'type' : temp[2], 'scale' : .01}
-        print(fg)
+            if float(pairs[0])>xmax:
+                xmax=float(pairs[0])
+            if float(pairs[0])<xmin:
+                xmin=float(pairs[0])
+            if float(pairs[1])>ymax:
+                ymax=float(pairs[1])
+            if float(pairs[1])<ymin:
+                ymin=float(pairs[1])
+        temp = ( ( math.sqrt( float(xmax-xmin)**2 + float(ymax-ymin)**2)/2 ), 
+        (float(xmax-xmin)/2 + xmin, float(ymax-ymin)/2 + ymin), 
+        "push")
+        fg = {'radius' : temp[0], 'center' : temp[1], 'type' : temp[2], 'scale' : .5}
         self.fieldGenerators.append(fg)
+        
         return temp
-            
           
 
 
