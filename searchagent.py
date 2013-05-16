@@ -5,6 +5,9 @@ import math
 
 from bzrc import BZRC, Command
 
+class State(object):
+    """A state keeps track of things used by the various searches."""
+    pass
 
 class Agent(object):
     
@@ -19,7 +22,7 @@ class Agent(object):
         for i in range(int(self.constants['worldsize'])):
             row = []
             for j in range(int(self.constants['worldsize'])):
-                row.append( [start[0] + i, start[1] + j, grid[i][j], 0] )
+                row.append( [start[0] + i, start[1] + j, grid[i][j]] )
             self.grid.append(row)
         self.othertanks = self.bzrc.get_othertanks();
         for tank in self.othertanks:
@@ -29,8 +32,24 @@ class Agent(object):
         #print self.goal.color, self.goal.x, self.goal.y 
         
     def search(self, algorithm):
-        pass
+        if algorithm == 'depthfirst' or algorithm == 'dfs':
+            pass
+        elif algorithm == 'breadthfirst' or algorithm == 'bfs':
+            pass
+        elif algorithm == 'idastar':
+            pass
+        elif algorithm == 'uniformcost' or algorithm == 'ucs':
+            pass
+        elif algorithm == 'astar':
+            pass
+        else:
+            raise Exception(algorithm)
     
+    def depthFirstSearch(self):
+        """Returns a list of tuples, being x, y coordinates on the grid
+           being the path to the goal found via a depth first search"""
+        
+        
         
 def main():
     # Process CLI arguments.
@@ -47,7 +66,11 @@ def main():
     
     agent = Agent(bzrc)
     
-    agent.search(algorithm)
+    try:
+        agent.search(algorithm)
+    except Exception as e:
+        print 'Error: unrecognized algorithm: %s' % str(e)
+        print 'valid options: dfs, bfs, idastar, ucs, astar'
 
 if __name__ == '__main__':
     main()
