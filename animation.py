@@ -123,7 +123,7 @@ class ANIMATION:
         gp.write(draw_nodes(orderedVisits))
         gp.write(draw_path(path))
         
-     def draw_path(path):
+    def draw_path(self,path):
         '''Return a string which tells Gnuplot to draw all of the obstacles.'''
         s = 'unset arrow\n'
 
@@ -135,7 +135,7 @@ class ANIMATION:
                 last_point = cur_point
         return s
 
-     def draw_nodes(nodes):
+    def draw_nodes(self,nodes):
         '''Return a string which tells Gnuplot to draw all of the obstacles.'''
         s = 'unset arrow\n'
 
@@ -151,20 +151,20 @@ class ANIMATION:
         return s
         
         
-    def gnuplot_header(minimum, maximum):
-    '''Return a string that has all of the gnuplot sets and unsets.'''
-    s = ''
-    s += 'set xrange [%s: %s]\n' % (minimum, maximum)
-    s += 'set yrange [%s: %s]\n' % (minimum, maximum)
-    # The key is just clutter.  Get rid of it:
-    s += 'unset key\n'
-    # Make sure the figure is square since the world is square:
-    s += 'set size square\n'
-    # Add a pretty title (optional):
-    #s += "set title 'Potential Fields'\n"
-    return s
+    def gnuplot_header(self,minimum, maximum):
+        '''Return a string that has all of the gnuplot sets and unsets.'''
+        s = ''
+        s += 'set xrange [%s: %s]\n' % (minimum, maximum)
+        s += 'set yrange [%s: %s]\n' % (minimum, maximum)
+        # The key is just clutter.  Get rid of it:
+        s += 'unset key\n'
+        # Make sure the figure is square since the world is square:
+        s += 'set size square\n'
+        # Add a pretty title (optional):
+        #s += "set title 'Potential Fields'\n"
+        return s
     
-    def draw_obstacles(obstacles):
+    def draw_obstacles(self,obstacles):
         '''Return a string which tells Gnuplot to draw all of the obstacles.'''
         s = 'unset arrow\n'
         brown=6
@@ -177,7 +177,7 @@ class ANIMATION:
            
         return s
                   
-    def draw_line(p1, p2,color):
+    def draw_line(self,p1, p2,color):
         '''Return a string to tell Gnuplot to draw a line from point p1 to
         point p2 in the form of a set command.'''
         x1 = p1[0]
