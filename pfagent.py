@@ -98,8 +98,8 @@ def main():
         execname, host, port = sys.argv
     except ValueError:
         execname = sys.argv[0]
-        #print >>sys.stderr, '%s: incorrect number of arguments' % execname
-        #print >>sys.stderr, 'usage: %s hostname port' % execname
+        print >>sys.stderr, '%s: incorrect number of arguments' % execname
+        print >>sys.stderr, 'usage: %s hostname port' % execname
         sys.exit(-1)
 
     #connect
