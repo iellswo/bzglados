@@ -31,7 +31,12 @@ class ANIMATION:
         
         self.gp.write(self.gnuplot_header(-self.worldSize / 2, self.worldSize / 2))
         self.gp.write(self.draw_nodes(orderedVisits,color))
+    
+    def animateTuples(self,orderedVisits, color):
         
+        self.gp.write(self.gnuplot_header(-self.worldSize / 2, self.worldSize / 2))
+        self.gp.write(self.draw_node_tuples(orderedVisits,color))
+       
         
 
 
@@ -49,7 +54,19 @@ class ANIMATION:
         
            
         return s
+    
+    def draw_node_tuples(self,nodes,color):
+        '''Return a string which tells Gnuplot to draw all of the obstacles.'''
+        #s = 'unset arrow\n'
+        s = ''
+
+        for cur_point in nodes:
+            s += self.draw_line_pause(cur_point[0], cur_point[1], color)
+           
         
+        
+           
+        return s    
         
     def gnuplot_header(self,minimum, maximum):
         '''Return a string that has all of the gnuplot sets and unsets.'''
@@ -96,7 +113,7 @@ class ANIMATION:
         x2 = p2[0]
         y2 = p2[1]
         s='set arrow from %s, %s to %s, %s nohead lt %d\n' % (x1, y1, x2, y2 ,color)
-        s+="\nplot '-' with lines\n0 0 0 0\ne\npause %f\n" % (0.000001)
+        s+="\nplot '-' with lines\n0 0 0 0\ne\npause %f\n" % (0.0000000001)
         return s
        
    
