@@ -17,42 +17,33 @@ class ANIMATION:
         self.worldSize=WS
         
         self.obstacles=OB
-   
-        
-    def animate(self,path,orderedVisits):
         try:
             from Gnuplot import GnuplotProcess
         except ImportError:
             print "Sorry.  You don't have the Gnuplot module installed."
             import sys
             sys.exit(-1)
-        gp = GnuplotProcess(persist=True)
-        gp.write(self.gnuplot_header(-self.worldSize / 2, self.worldSize / 2))
-        gp.write(self.draw_obstacles(self.obstacles)) 
-        gp.write(self.draw_nodes(orderedVisits))
-        gp.write(self.draw_path(path))
+        self.gp = GnuplotProcess(persist=True)
+        self.gp.write(self.draw_obstacles(self.obstacles)) 
+   
         
-    def draw_path(self,path):
+    def animate(self,orderedVisits, color):
+        
+        self.gp.write(self.gnuplot_header(-self.worldSize / 2, self.worldSize / 2))
+        self.gp.write(self.draw_nodes(orderedVisits,color))
+        
+        
+
+
+    def draw_nodes(self,nodes,color):
         '''Return a string which tells Gnuplot to draw all of the obstacles.'''
         #s = 'unset arrow\n'
         s = ''
 
-        red=1
-        last_point = path[0]
-        for cur_point in path[1:]:
-            s += self.draw_line(last_point, cur_point, red)
-            last_point = cur_point
-        return s
-
-    def draw_nodes(self,nodes):
-        '''Return a string which tells Gnuplot to draw all of the obstacles.'''
-        #s = 'unset arrow\n'
-        s = ''
-
-        green=2
+       
         last_point = nodes[0]
         for cur_point in nodes[1:]:
-            s += self.draw_line_pause(last_point, cur_point, green)
+            s += self.draw_line_pause(last_point, cur_point, color)
             last_point = cur_point
         
         
@@ -105,7 +96,7 @@ class ANIMATION:
         x2 = p2[0]
         y2 = p2[1]
         s='set arrow from %s, %s to %s, %s nohead lt %d\n' % (x1, y1, x2, y2 ,color)
-        s+="\nplot '-' with lines\n0 0 0 0\ne\npause %f\n" % (0.0001)
+        s+="\nplot '-' with lines\n0 0 0 0\ne\npause %f\n" % (0.000001)
         return s
        
    
