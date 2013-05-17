@@ -97,16 +97,18 @@ class Agent(object):
                 continue
             if node.coord== problem.goal:
                 solution= s = self.make_solution(node)
-                self.ani.animateTuples(self.path, 2 ) 
+              #  self.ani.animateTuples(self.path, 2 )
+                print "hello"
                 self.path = []
-                self.ani.animate(solution, 1 ) 
+              #  self.ani.animate(solution, 1 ) 
                 return solution
             closedNodes.append(node.coord)
             if node.parent:
                 self.path.append((self.adjust(node.parent.coord),self.adjust(node.coord)))
+                
             if len(self.path) > self.step:
                 print "new command"
-                self.ani.animateTuples(self.path, 2 ) 
+                #self.ani.animateTuples(self.path, 2 ) 
                 self.path = []
             neighbors=self.get_neighbors_with_weight(node.coord)
             for n in neighbors:
@@ -151,10 +153,11 @@ class Agent(object):
                 raise Exception('failure')
             node = frontier.get()[1]
             explored.append(node.coord)
-            self.path.append(self.adjust(node.coord))
+            if node.parent:
+                self.path.append((self.adjust(node.parent.coord),self.adjust(node.coord)))
             if len(self.path) > self.step:
                 #pass path to self.ani somehow
-                self.ani.animate(self.path, 2)
+                self.ani.animateTuples(self.path, 2)
                 self.path = []
             for x, y, c in self.get_neighbors_with_weight(node.coord):
                 n = (x, y)
@@ -180,7 +183,7 @@ class Agent(object):
                 self.ani.animate(result, 1)
                 return result
             except Failure:
-                self.ani.animate(self.path, 2)
+                self.ani.animateTuples(self.path, 2)
                 cutoff += 1
                 
     def depthLimitedSearch(self, problem, cutoff):
@@ -190,10 +193,11 @@ class Agent(object):
         return self.recursiveDLS(node, problem, cutoff, [])
         
     def recursiveDLS(self, node, problem, cutoff, visited):
-        self.path.append(self.adjust(node.coord))
+        if node.parent:
+            self.path.append((self.adjust(node.parent.coord),self.adjust(node.coord)))
         visited.append(node.coord)
         if len(self.path) > self.step:
-            self.ani.animate(self.path, 2)
+            self.ani.animateTuples(self.path, 2)
             self.path = []
         if node.coord == problem.goal:
             return self.make_solution(node)

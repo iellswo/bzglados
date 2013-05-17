@@ -17,6 +17,7 @@ class ANIMATION:
         self.worldSize=WS
         
         self.obstacles=OB
+        self.counter=0
         try:
             from Gnuplot import GnuplotProcess
         except ImportError:
@@ -113,7 +114,9 @@ class ANIMATION:
         x2 = p2[0]
         y2 = p2[1]
         s='set arrow from %s, %s to %s, %s nohead lt %d\n' % (x1, y1, x2, y2 ,color)
-        s+="\nplot '-' with lines\n0 0 0 0\ne\npause %f\n" % (0.0000000001)
+        
+        s+="\nplot '-' with lines\n0 0 0 0\ne\npause %f\n" % (0)
+
         return s
        
    
