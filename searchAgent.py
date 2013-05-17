@@ -49,29 +49,52 @@ class Agent(object):
         #print self.goal.color, self.goal.x, self.goal.y
         self.ani = Animation(int(self.constants['worldsize']), self.bzrc.get_obstacles())
         self.step = 1000
+        
         self.path = []
         
     def search(self, algorithm):
         problem = Problem()
         problem.starting = (int(self.mytank.x + self.offset), int(self.mytank.y + self.offset))
         problem.goal = (int(self.goal.x + self.offset), int(self.goal.y + self.offset))
-        if algorithm == 'depthfirst' or algorithm == 'dfs':
-            
+        if algorithm == 'depthfirstP' or algorithm == 'dfs':
+            problem.penalized=True
             return self.depthFirstSearch(problem)
-        elif algorithm == 'breadthfirst' or algorithm == 'bfs':
-            
+        elif algorithm == 'depthfirst' or algorithm == 'dfs':
+            problem.penalized=False
+            return self.depthFirstSearch(problem)
+        elif algorithm == 'breadthfirstP' or algorithm == 'bfs':
+            problem.penalized=True
             #problem.goal = (int(self.mytank.x + self.offset + 10), int(self.mytank.y + self.offset))
             return self.breadthFirstSearch(problem)
+        elif algorithm == 'breadthfirst' or algorithm == 'bfs':
+            problem.penalized=False
+            #problem.goal = (int(self.mytank.x + self.offset + 10), int(self.mytank.y + self.offset))
+            return self.breadthFirstSearch(problem)
+        elif algorithm == 'iterativedeepeningP' or algorithm == 'ids':
+            #problem.goal = (int(self.mytank.x + self.offset + 10), int(self.mytank.y + self.offset))
+            problem.penalized=True
+            return self.iterativeDeepening(problem)
         elif algorithm == 'iterativedeepening' or algorithm == 'ids':
             #problem.goal = (int(self.mytank.x + self.offset + 10), int(self.mytank.y + self.offset))
+            problem.penalized=False
             return self.iterativeDeepening(problem)
+        elif algorithm == 'uniformcostP' or algorithm == 'ucs':
+            #problem.goal = (int(self.mytank.x + self.offset + 10), int(self.mytank.y + self.offset))
+            problem.penalized=True
+            return self.uniformCost(problem)
         elif algorithm == 'uniformcost' or algorithm == 'ucs':
             #problem.goal = (int(self.mytank.x + self.offset + 10), int(self.mytank.y + self.offset))
+            problem.penalized=False
             return self.uniformCost(problem)
+        elif algorithm == 'astarP':
+            #problem.goal = (int(self.mytank.x + self.offset + 50), int(self.mytank.y + self.offset-10))
+            problem.penalized=True
+            return self.aStar(problem)
         elif algorithm == 'astar':
             #problem.goal = (int(self.mytank.x + self.offset + 50), int(self.mytank.y + self.offset-10))
-    
+            problem.penalized=False
             return self.aStar(problem)
+        
         else:
             raise Failure('Unknown algorithm %d' % algorithm)
             
@@ -97,10 +120,10 @@ class Agent(object):
                 continue
             if node.coord== problem.goal:
                 solution= s = self.make_solution(node)
-              #  self.ani.animateTuples(self.path, 2 )
+                self.ani.animateTuples(self.path, 2 )
                 print "hello"
                 self.path = []
-              #  self.ani.animate(solution, 1 ) 
+                self.ani.animate(solution, 1 ) 
                 return solution
             closedNodes.append(node.coord)
             if node.parent:
@@ -108,12 +131,21 @@ class Agent(object):
                 
             if len(self.path) > self.step:
                 print "new command"
-                #self.ani.animateTuples(self.path, 2 ) 
+                self.ani.animateTuples(self.path, 2 ) 
                 self.path = []
             neighbors=self.get_neighbors_with_weight(node.coord)
             for n in neighbors:
-               
+                costOfTravel=n[2]
+                if problem.penalized:
+                    if self.nextToObject(node.coord) and self.nextToObject((n[0],n[1])):
+                        costOfTravel=n[2]*1.5
+                    elif self.nextToObject(node.coord): 
+                        costOfTravel=n[2]*1.1
+                    elif self.nextToObject((n[0],n[1])):
+                        costOfTravel=n[2]*1.3
+                    
                 tenativeGScore = node.gscore + n[2]
+                
                 if (n[0],n[1]) in closedNodes:
                     
                     if tenativeGScore>=n[2]:
@@ -137,6 +169,25 @@ class Agent(object):
         #return 1
         return ((b[1]-a[1])**2+(b[0]-a[0])**2)**.5
         
+    def nextToObject(self, node):
+        if self.is_outside_bounds( (node[0]-1, node[1]) ):
+            return True
+        if self.is_outside_bounds( (node[0]+1, node[1]) ):
+            return True
+        if self.is_outside_bounds( (node[0], node[1]+1) ):
+            return True
+        if self.is_outside_bounds( (node[0], node[1]-1) ):
+            return True
+        if self.is_outside_bounds( (node[0]-1, node[1]+1) ):
+            return True
+        if self.is_outside_bounds( (node[0]+1, node[1]+1) ):
+            return True
+        if self.is_outside_bounds( (node[0]-1, node[1]-1) ):
+            return True
+        if self.is_outside_bounds( (node[0]+1, node[1]-1) ):
+            return True
+        return False
+            
     def uniformCost(self, problem):
         node = State()
         node.coord = problem.starting
