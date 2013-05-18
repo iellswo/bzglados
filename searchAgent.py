@@ -200,17 +200,25 @@ class Agent(object):
         node.coord = problem.starting
         node.parent = None
         node.weight=0
+        node.cost = 0
+        recent =[problem.starting]
         explored=[problem.starting]
         self.path=[]
         if problem.starting == problem.goal:
             return [self.adjust(problem.starting)]
         frontier = PriorityQueue(maxsize=0)
         frontier.put((node.weight,node))
+        
+        fList={}
+        inQ=[node.coord]
         while True:
             if frontier.empty():
                 raise Exception('failure')
             node = frontier.get()[1]
-            
+            inQ.remove(node.coord)
+            if str(node.coord) in fList.keys() and fList[str(newnode.coord)]<node.weight:
+                node.weight=flist[str(newnode.coord)]
+                fList.remove(str(node.coord))
             if node.parent:
                 self.path.append((self.adjust(node.parent.coord),self.adjust(node.coord)))
             if len(self.path) > self.step:
@@ -219,20 +227,33 @@ class Agent(object):
                 self.path = []
             for x, y, c in self.get_neighbors_with_weight(node.coord):
                 n = (x, y)
-                if n not in explored:
+                if n not in recent and n not in explored and n not in inQ:
                     if self.grid[n[0]][n[1]][2] == 1:
                         continue
                     #print n
                     explored.append(n)
+                    recent.append(n)
+                    if len(recent) > 1000:
+                        recent = recent[-300:]
+                    
                     newnode = State()
                     newnode.coord = n
                     newnode.weight = node.weight + c
                     newnode.parent = node
+                    newnode.cost = c
                     if n == problem.goal:
-                        s = self.make_solution(newnode)
+                        s, l, c = self.make_solution(newnode)
                         self.ani.animate(s, 1)
+                        print " nodes visited:", len(explored)
+                        print "length of path:", l
+                        print "  cost of path:", c
                         return s
+                    
                     frontier.put((newnode.weight, newnode))
+                    inQ.append(newnode.coord)
+                    fList[str(newnode.coord)]=newnode.weight
+                elif newnode.coord in inQ and fList[str(newnode.coord)]>newnode.weight:
+                    fList[str(newnode.coord)]=newnode.weight
     
     def iterativeDeepening(self, problem):
         cutoff = 1
