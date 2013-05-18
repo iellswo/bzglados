@@ -1,13 +1,7 @@
-from bzrc import BZRC
 
-bzrc = BZRC('localhost', 50100)
+t = {}
 
-constants = bzrc.get_constants()
+t['a'] = 4
 
-print 'constants', constants
-
-obstacles = bzrc.get_obstacles()
-
-print 'obstacles', obstacles
-
-bzrc.close()
+if 'a' in t.keys():
+    print t['a']
