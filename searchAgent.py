@@ -102,7 +102,9 @@ class Agent(object):
         node = State()
         node.coord = problem.starting
         node.parent = None
+        nexplored=1
         node.gscore=0
+        node.cost = 0
         node.fscore=0 + self.aStarCostEstimate(node.coord,problem.goal)
         openNodes = PriorityQueue(maxsize=0)
         openNodes.put((node.fscore,node))
@@ -119,12 +121,12 @@ class Agent(object):
             if self.grid[node.coord[0]][node.coord[1]][2] == 1:
                 continue
             if node.coord== problem.goal:
-                solution= s = self.make_solution(node)
-                self.ani.animateTuples(self.path, 2 )
-                #print "hello"
-                self.path = []
-                self.ani.animate(solution, 1 ) 
-                return solution
+                s, l, c = self.make_solution(node)
+                self.ani.animate(s, 1)
+                print " nodes visited:", nexplored
+                print "length of path:", l
+                print "  cost of path:", c
+                return s
             closedNodes.append(node.coord)
             if node.parent:
                 self.path.append((self.adjust(node.parent.coord),self.adjust(node.coord)))
@@ -135,6 +137,7 @@ class Agent(object):
                 self.path = []
             neighbors=self.get_neighbors_with_weight(node.coord)
             for n in neighbors:
+                nexplored += 1
                 costOfTravel=n[2]
                 if problem.penalized:
                     if self.nextToObject(node.coord) and self.nextToObject((n[0],n[1])):
@@ -157,6 +160,7 @@ class Agent(object):
                     newNode.coord=(n[0],n[1])
                     newNode.parent=node
                     newNode.gscore=tenativeGScore
+                    newNode.cost = costOfTravel
                     newNode.fscore=newNode.gscore + self.aStarCostEstimate(newNode.coord,problem.goal)
                     if newNode.coord not in openList:
                        # print n
@@ -245,6 +249,7 @@ class Agent(object):
         node = State()
         node.coord = problem.starting
         node.parent = None
+        node.cost = 0
         return self.recursiveDLS(node, problem, cutoff, [])
         
     def recursiveDLS(self, node, problem, cutoff, visited):
@@ -255,12 +260,18 @@ class Agent(object):
             self.ani.animateTuples(self.path, 2)
             self.path = []
         if node.coord == problem.goal:
+            s, l, c = self.make_solution(newnode)
+            self.ani.animate(s, 1)
+            print " nodes visited: tl;dr"
+            print "length of path:", l
+            print "  cost of path:", c
             return self.make_solution(node)
         elif cutoff == 0:
             raise Failure('Limit Reached')
         else:
-            neighbors = self.get_neighbors(node.coord)
-            for n in neighbors:
+            neighbors = self.get_neighbors_with_weight(node.coord)
+            for x, y, w in neighbors:
+                n = (x, y)
                 if self.grid[n[0]][n[1]][2] == 1:
                     continue
                 elif n in visited:
@@ -268,6 +279,7 @@ class Agent(object):
                 newnode = State()
                 newnode.coord = n
                 newnode.parent = node
+                newnode.cost = w
                 try:
                     return self.recursiveDLS(newnode, problem, cutoff-1, visited)
                 except Failure:
@@ -280,6 +292,7 @@ class Agent(object):
            being the path to the goal found via a depth first search"""
         stack = []
         explored = [problem.starting]
+        nexplored = 1
         recent = [problem.starting]
         if problem.starting == problem.goal:
             return [self.adjust(problem.starting)]
@@ -287,6 +300,7 @@ class Agent(object):
         node.coord = problem.starting
         path = [ (self.adjust(node.coord), self.adjust(node.coord)) ]
         node.parent = None
+        node.cost = 0
         stack.append(node)
         while True:
             if len(stack) == 0:
@@ -296,9 +310,10 @@ class Agent(object):
                 #pass path to self.ani somehow
                 self.ani.animateTuples(path, 2)
                 path = []
-            neighbors = self.get_neighbors(node.coord)
-            neighbors.reverse()
-            for n in neighbors:
+            neighbors = self.get_neighbors_with_weight(node.coord)
+            #neighbors.reverse()
+            for x, y, w in neighbors:
+                n = (x, y)
                 if n in recent:
                     continue
                 elif n in explored:
@@ -307,13 +322,18 @@ class Agent(object):
                     continue
                 explored.append(n)
                 recent.append(n)
+                nexplored += 1
                 path.append( (self.adjust(node.coord), self.adjust(n)) )
                 newnode = State()
                 newnode.coord = n
                 newnode.parent = node
+                newnode.cost = w
                 if n == problem.goal:
-                    s = self.make_solution(newnode)
+                    s, l, c = self.make_solution(newnode)
                     self.ani.animate(s, 1)
+                    print " nodes visited:", nexplored
+                    print "length of path:", l
+                    print "  cost of path:", c
                     return s
                 stack.append(newnode)
      
@@ -326,8 +346,10 @@ class Agent(object):
         node = State()
         node.coord = problem.starting
         node.parent = None
+        node.cost = 0
         frontier.append( node )
         explored=[node.coord]
+        nexplored = 1
         recent=[node.coord]
         path = [ (self.adjust(node.coord), self.adjust(node.coord) ) ]
         while True:
@@ -338,7 +360,8 @@ class Agent(object):
                 #pass path to self.ani somehow
                 self.ani.animateTuples(path, 2)
                 path = []
-            for n in self.get_neighbors(node.coord):
+            for x, y, w in self.get_neighbors_with_weight(node.coord):
+                n = (x, y)
                 if n  in recent:
                     continue
                 elif n in explored:
@@ -348,15 +371,20 @@ class Agent(object):
                 #print n
                 explored.append(n)
                 recent.append(n)
+                nexplored += 1
                 if len(recent) > 1000:
                     recent = recent[-300:]
                 path.append( (self.adjust(node.coord), self.adjust(n)) )
                 newnode = State()
                 newnode.coord = n
                 newnode.parent = node
+                newnode.cost = w
                 if n == problem.goal:
-                    s = self.make_solution(newnode)
+                    s, l, c = self.make_solution(newnode)
                     self.ani.animate(s, 1)
+                    print " nodes visited:", nexplored
+                    print "length of path:", l
+                    print "  cost of path:", c
                     return s
                 frontier.append(newnode)
     
@@ -407,12 +435,16 @@ class Agent(object):
                 
     def make_solution(self, node):
         a = []
+        c = 0
+        l = 0
         while node.parent != None:
             a.append( self.adjust(node.coord) )
+            c += node.cost
+            l += 1
             node = node.parent
         a.append( self.adjust(node.coord) )
         a.reverse()
-        return a
+        return a, l, c
         
     def adjust(self, coord):
         return (self.grid[coord[0]][coord[1]][0], self.grid[coord[0]][coord[1]][1])
