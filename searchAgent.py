@@ -121,7 +121,7 @@ class Agent(object):
             if node.coord== problem.goal:
                 solution= s = self.make_solution(node)
                 self.ani.animateTuples(self.path, 2 )
-                print "hello"
+                #print "hello"
                 self.path = []
                 self.ani.animate(solution, 1 ) 
                 return solution
@@ -130,7 +130,7 @@ class Agent(object):
                 self.path.append((self.adjust(node.parent.coord),self.adjust(node.coord)))
                 
             if len(self.path) > self.step:
-                print "new command"
+                #print "new command"
                 self.ani.animateTuples(self.path, 2 ) 
                 self.path = []
             neighbors=self.get_neighbors_with_weight(node.coord)
@@ -144,7 +144,7 @@ class Agent(object):
                     elif self.nextToObject((n[0],n[1])):
                         costOfTravel=n[2]*1.3
                     
-                tenativeGScore = node.gscore + n[2]
+                tenativeGScore = node.gscore + costOfTravel
                 
                 if (n[0],n[1]) in closedNodes:
                     
@@ -170,30 +170,33 @@ class Agent(object):
         return ((b[1]-a[1])**2+(b[0]-a[0])**2)**.5
         
     def nextToObject(self, node):
-        if self.is_outside_bounds( (node[0]-1, node[1]) ):
+        if self.is_occupied( (node[0]-1, node[1]) ):
             return True
-        if self.is_outside_bounds( (node[0]+1, node[1]) ):
+        if self.is_occupied( (node[0]+1, node[1]) ):
             return True
-        if self.is_outside_bounds( (node[0], node[1]+1) ):
+        if self.is_occupied( (node[0], node[1]+1) ):
             return True
-        if self.is_outside_bounds( (node[0], node[1]-1) ):
+        if self.is_occupied( (node[0], node[1]-1) ):
             return True
-        if self.is_outside_bounds( (node[0]-1, node[1]+1) ):
+        if self.is_occupied( (node[0]-1, node[1]+1) ):
             return True
-        if self.is_outside_bounds( (node[0]+1, node[1]+1) ):
+        if self.is_occupied( (node[0]+1, node[1]+1) ):
             return True
-        if self.is_outside_bounds( (node[0]-1, node[1]-1) ):
+        if self.is_occupied( (node[0]-1, node[1]-1) ):
             return True
-        if self.is_outside_bounds( (node[0]+1, node[1]-1) ):
+        if self.is_occupied( (node[0]+1, node[1]-1) ):
             return True
         return False
+            
+    def is_occupied( self, p ):
+        return self.grid[p[0]][p[1]][2] == 1
             
     def uniformCost(self, problem):
         node = State()
         node.coord = problem.starting
         node.parent = None
         node.weight=0
-        explored=[]
+        explored=[problem.starting]
         self.path=[]
         if problem.starting == problem.goal:
             return [self.adjust(problem.starting)]
@@ -203,7 +206,7 @@ class Agent(object):
             if frontier.empty():
                 raise Exception('failure')
             node = frontier.get()[1]
-            explored.append(node.coord)
+            
             if node.parent:
                 self.path.append((self.adjust(node.parent.coord),self.adjust(node.coord)))
             if len(self.path) > self.step:
@@ -216,6 +219,7 @@ class Agent(object):
                     if self.grid[n[0]][n[1]][2] == 1:
                         continue
                     #print n
+                    explored.append(n)
                     newnode = State()
                     newnode.coord = n
                     newnode.weight = node.weight + c
@@ -273,46 +277,49 @@ class Agent(object):
 
     def depthFirstSearch(self, problem):
         """Returns a list of tuples, being x, y coordinates on the grid
-being the path to the goal found via a depth first search"""
+           being the path to the goal found via a depth first search"""
         stack = []
-        explored = []
-        path = []
+        explored = [problem.starting]
+        recent = [problem.starting]
         if problem.starting == problem.goal:
             return [self.adjust(problem.starting)]
         node = State()
         node.coord = problem.starting
+        path = [ (self.adjust(node.coord), self.adjust(node.coord)) ]
         node.parent = None
         stack.append(node)
         while True:
             if len(stack) == 0:
                 raise Failure('Depth First Search')
             node = stack.pop()
-            explored.append(node)
-            path.append(self.adjust(node.coord))
             if len(path) > self.step:
                 #pass path to self.ani somehow
-                self.ani.animate(path, 2)
+                self.ani.animateTuples(path, 2)
                 path = []
             neighbors = self.get_neighbors(node.coord)
             neighbors.reverse()
             for n in neighbors:
-                sc = [s.coord for s in stack]
-                ec = [e.coord for e in explored]
-                if n not in sc and n not in ec:
-                    if self.grid[n[0]][n[1]][2] == 1:
-                        continue
-                    newnode = State()
-                    newnode.coord = n
-                    newnode.parent = node
-                    if n == problem.goal:
-                        s = self.make_solution(newnode)
-                        self.ani.animate(s, 1)
-                        return s
-                    stack.append(newnode)
+                if n in recent:
+                    continue
+                elif n in explored:
+                    continue
+                if self.grid[n[0]][n[1]][2] == 1:
+                    continue
+                explored.append(n)
+                recent.append(n)
+                path.append( (self.adjust(node.coord), self.adjust(n)) )
+                newnode = State()
+                newnode.coord = n
+                newnode.parent = node
+                if n == problem.goal:
+                    s = self.make_solution(newnode)
+                    self.ani.animate(s, 1)
+                    return s
+                stack.append(newnode)
      
     def breadthFirstSearch(self, problem):
         """Returns a list of tuples, being x, y coordinates on the grid
-being the path to the goal found via a depth first search"""
+           being the path to the goal found via a depth first search"""
         frontier=deque([])
         if problem.starting == problem.goal:
             return [self.adjust(problem.starting)]
@@ -320,33 +327,38 @@ being the path to the goal found via a depth first search"""
         node.coord = problem.starting
         node.parent = None
         frontier.append( node )
-        explored=[]
-        path = []
+        explored=[node.coord]
+        recent=[node.coord]
+        path = [ (self.adjust(node.coord), self.adjust(node.coord) ) ]
         while True:
             if len(frontier) == 0:
-                raise Exception('failure')
+                raise Failure('Breadth First Search')
             node = frontier.popleft()
-            explored.append(node)
-            path.append(self.adjust(node.coord))
             if len(path) > self.step:
                 #pass path to self.ani somehow
-                self.ani.animate(path, 2)
+                self.ani.animateTuples(path, 2)
                 path = []
             for n in self.get_neighbors(node.coord):
-                fc = [f.coord for f in frontier]
-                ec = [e.coord for e in explored]
-                if n not in fc and n not in ec:
-                    if self.grid[n[0]][n[1]][2] == 1:
-                        continue
-                    #print n
-                    newnode = State()
-                    newnode.coord = n
-                    newnode.parent = node
-                    if n == problem.goal:
-                        s = self.make_solution(newnode)
-                        self.ani.animate(s, 1)
-                        return s
-                    frontier.append(newnode)
+                if n  in recent:
+                    continue
+                elif n in explored:
+                    continue
+                if self.grid[n[0]][n[1]][2] == 1:
+                    continue
+                #print n
+                explored.append(n)
+                recent.append(n)
+                if len(recent) > 1000:
+                    recent = recent[-300:]
+                path.append( (self.adjust(node.coord), self.adjust(n)) )
+                newnode = State()
+                newnode.coord = n
+                newnode.parent = node
+                if n == problem.goal:
+                    s = self.make_solution(newnode)
+                    self.ani.animate(s, 1)
+                    return s
+                frontier.append(newnode)
     
     def get_neighbors(self, node):
         l = []

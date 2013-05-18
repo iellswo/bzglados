@@ -18,6 +18,7 @@ class ANIMATION:
         
         self.obstacles=OB
         self.counter=0
+        self.step=400
         try:
             from Gnuplot import GnuplotProcess
         except ImportError:
@@ -48,11 +49,12 @@ class ANIMATION:
 
        
         last_point = nodes[0]
-        for cur_point in nodes[1:]:
+        for cur_point in nodes[1:-1]:
             s += self.draw_line_pause(last_point, cur_point, color)
             last_point = cur_point
         
-        
+        self.counter = self.step
+        s+= self.draw_line_pause(last_point, nodes[-1], color)
            
         return s
     
@@ -63,10 +65,6 @@ class ANIMATION:
 
         for cur_point in nodes:
             s += self.draw_line_pause(cur_point[0], cur_point[1], color)
-           
-        
-        
-           
         return s    
         
     def gnuplot_header(self,minimum, maximum):
@@ -114,9 +112,11 @@ class ANIMATION:
         x2 = p2[0]
         y2 = p2[1]
         s='set arrow from %s, %s to %s, %s nohead lt %d\n' % (x1, y1, x2, y2 ,color)
+        if self.counter % self.step == 0:
+            s+="\nplot '-' with lines\n0 0 0 0\ne\npause %f\n" % (0)
+            self.counter = 0
         
-        s+="\nplot '-' with lines\n0 0 0 0\ne\npause %f\n" % (0)
-
+        self.counter += 1
         return s
        
    
