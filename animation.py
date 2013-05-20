@@ -18,7 +18,7 @@ class ANIMATION:
         
         self.obstacles=OB
         self.counter=0
-        self.step=400
+        self.step=1000
         try:
             from Gnuplot import GnuplotProcess
         except ImportError:

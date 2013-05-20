@@ -127,15 +127,24 @@ class Agent(object):
         openNodes = PriorityQueue(maxsize=0)
         openNodes.put((node.fscore,node))
         openList=[node.coord]
-        closedNodes=[]
+        closedList=[]
+        nodes = []
+        for i in range(int(self.constants['worldsize'])):
+            row = []
+            for j in range(int(self.constants['worldsize'])):
+                row.append( None )
+            nodes.append(row)
         self.path=[]
         while True:
             
            
             if openNodes.empty():
-                 raise Exception('failure')
+                 raise Failure('A*')
             node=openNodes.get()[1]
             openList.remove(node.coord)
+            print "pop", node.coord
+            print "gscore", node.gscore
+            print "fscore", node.fscore
             if self.grid[node.coord[0]][node.coord[1]][2] == 1:
                 continue
             if node.coord== problem.goal:
@@ -145,7 +154,7 @@ class Agent(object):
                 print "length of path:", l
                 print "  cost of path:", c
                 return s
-            closedNodes.append(node.coord)
+            closedList.append(node.coord)
             if node.parent:
                 self.path.append((self.adjust(node.parent.coord),self.adjust(node.coord)))
                 
@@ -154,42 +163,49 @@ class Agent(object):
                 self.ani.animateTuples(self.path, 2 ) 
                 self.path = []
             neighbors=self.get_neighbors_with_weight(node.coord)
-            for n in neighbors:
-                costOfTravel=n[2]
+            for x, y, w in neighbors:
+                costOfTravel=w
                 if problem.penalized:
-                    if self.nextToObject(node.coord) and self.nextToObject((n[0],n[1])):
-                        costOfTravel=n[2]*3
+                    if self.nextToObject(node.coord) and self.nextToObject((x,y)):
+                        costOfTravel=w*3
                     elif self.nextToObject(node.coord): 
-                        costOfTravel=n[2]*1.3
-                    elif self.nextToObject((n[0],n[1])):
-                        costOfTravel=n[2]*3
+                        costOfTravel=w*1.3
+                    elif self.nextToObject((x,y)):
+                        costOfTravel=w*3
                     
                 tenativeGScore = node.gscore + costOfTravel
                 
-                if (n[0],n[1]) in closedNodes:
+                if (x,y) in closedList:
                     
                     if tenativeGScore>=costOfTravel:
                         continue
-               
                         
-                if (n[0],n[1]) not in openList or tenativeGScore < costOfTravel:
+                yes = False
+                if nodes[x][y]!=None:
+                    if tenativeGScore < nodes[x][y].gscore:
+                        yes = True
+                        
+                if (x,y) not in openList or yes:
                     newNode=State()
-                    newNode.coord=(n[0],n[1])
+                    if nodes[x][y]!=None:
+                        newNode = nodes[x][y]
+                    newNode.coord=(x,y)
                     newNode.parent=node
                     newNode.gscore=tenativeGScore
                     newNode.cost = costOfTravel
                     newNode.fscore=newNode.gscore + self.aStarCostEstimate(newNode.coord,problem.goal)
+                    nodes[x][y] = newNode
                     if newNode.coord not in openList:
-                       # print n
+                        #print "push", newNode.coord
                         nexplored += 1
                         openNodes.put((newNode.fscore,newNode))
                         openList.append(newNode.coord)
-                       # print openNodes.qsize()
-     
-                     
+                        #print openNodes.qsize()
+
+    
     def aStarCostEstimate(self, a , b):
         #return 1
-        return ((b[1]-a[1])**2+(b[0]-a[0])**2)**.5
+        return math.sqrt((b[1]-a[1])**2+(b[0]-a[0])**2)
         
     def nextToObject(self, node):
         if self.is_occupied( (node[0]-1, node[1]) ):
@@ -345,12 +361,14 @@ class Agent(object):
             if len(stack) == 0:
                 raise Failure('Depth First Search')
             node = stack.pop()
+            explored.append(node.coord)
+            recent.append(node.coord)
             if len(path) > self.step:
                 #pass path to self.ani somehow
                 self.ani.animateTuples(path, 2)
                 path = []
             neighbors = self.get_neighbors_with_weight(node.coord)
-            #neighbors.reverse()
+            neighbors.reverse()
             for x, y, w in neighbors:
                 n = (x, y)
                 if n in recent:
@@ -359,9 +377,8 @@ class Agent(object):
                     continue
                 if self.grid[n[0]][n[1]][2] == 1:
                     continue
-                explored.append(n)
-                recent.append(n)
                 nexplored += 1
+                #print n
                 if len(recent) > 1000:
                     recent = recent[-300:]
                 path.append( (self.adjust(node.coord), self.adjust(n)) )
