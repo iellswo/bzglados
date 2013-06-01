@@ -20,10 +20,13 @@ from mapBuilder import MapBuilder
 AOR = .4
 
 # If the percentage is higher than this we assume it's an occupied square
-TH = .95
+TH = .99999
 
 # If the percentage is lower than this we assume it's unoccupied
 THL = .1
+
+# If the percentage is higher tanks will avoid
+THT = .999
 
 # The range of the search space for new target
 RANGE = 400
@@ -32,7 +35,7 @@ RANGE = 400
 LOOKAHEAD = 2
 
 # How much berth do we give obstacles?
-RAD = 90
+RAD = 50
 
 # How many times to we try to find an unoccupied square? (affects speed)
 TRYAGAIN = 11
@@ -73,7 +76,7 @@ class GridAgent(object):
         self.targets = []
         self.temptargets = []
         for i in range(t_n):
-            t = self.to_world_space(( (self.world_size/t_n)*i, (self.world_size/t_n)*i ))
+            t = self.to_world_space(( (self.world_size/t_n)*(i+.5), (self.world_size/t_n)*(i+.5) ))
             print 'target for tank', i, 'is now', t
             self.targets.append( t )
             self.temptargets.append( None )
@@ -114,9 +117,6 @@ class GridAgent(object):
                 x = g_x + i
                 y = g_y + j
                 
-                if self.is_decided((x, y)):
-                    continue
-                
                 # the current probability that this space is occupied
                 p_state = self.grid[x][y]
                 
@@ -126,16 +126,9 @@ class GridAgent(object):
                 # find p_observed, which is the probability that the sensor would observe
                 # what it observed taking everything into consideration
                 p_sensor_not = 1-self.true_positive if observed == 1 else self.true_negative
-                p_observed = p_state*p_sensor + (1-p_state) * p_sensor_not
+                p_observed = p_state*p_sensor + (1-p_state)*p_sensor_not
                 
                 p_new = p_sensor * p_state / p_observed
-                
-                if p_new >= TH:
-                    self.grid[x][y] = 1
-                elif p_new <= THL:
-                    self.grid[x][y] = 0
-                else:
-                    self.grid[x][y] = p_new
                 
                 self.grid[x][y] = p_new
                     
@@ -146,18 +139,17 @@ class GridAgent(object):
         
         if self.targets[tank.index] is not None and self.is_occupied(self.to_grid_space(self.targets[tank.index])):
             self.targets[tank.index] = None
+            
+        if self.targets[tank.index] is None:
+            t = self.get_new_target((tank.x, tank.y))
+            print 'target for tank', tank.index, 'is now', t
+            self.targets[tank.index] = t
         
         look_ahead = (int(tank.x + (LOOKAHEAD*tank.vx)), int(tank.y + (LOOKAHEAD*tank.vy)))
         if self.is_occupied(self.to_grid_space(look_ahead)):
             o_x, o_y = self.get_orientation(int(tank.vx), int(tank.vy))
             t_x, t_y = self.targets[tank.index]
             self.temptargets[tank.index] = (tank.x + (RAD * -o_y), tank.y + (RAD * -o_x))
-        
-        
-        if self.targets[tank.index] is None:
-            t = self.get_new_target((tank.x, tank.y))
-            print 'target for tank', tank.index, 'is now', t
-            self.targets[tank.index] = t
         
         if self.temptargets[tank.index] is None:
             self.move_to_position(tank, self.targets[tank.index])
@@ -198,7 +190,8 @@ class GridAgent(object):
                                   target_x - tank.x)
         relative_angle = self.normalize_angle(target_angle - tank.angle)
         relative_angle = relative_angle
-        command = Command(tank.index, max(0, .4-abs(relative_angle)), relative_angle, False)
+        wiggle = random.uniform(-.2, .2)
+        command = Command(tank.index, max(0, .4-abs(relative_angle)), relative_angle+wiggle, False)
         self.commands.append(command)
         
     def normalize_angle(self, angle):
@@ -224,7 +217,7 @@ class GridAgent(object):
         return math.sqrt((b[1]-a[1])**2+(b[0]-a[0])**2)
         
     def is_occupied( self, p ):
-        return self.grid[p[0]][p[1]] >= TH
+        return self.grid[p[0]][p[1]] >= THT
         
     def get_new_target(self, p):
         p_x, p_y = self.to_grid_space(p)
@@ -245,7 +238,7 @@ class GridAgent(object):
         # assumes p is in grid space
         x, y = p
         g = self.grid[x][y]
-        return g == 0 or g == 1
+        return g < THL or g > TH
         
     def get_orientation(self, vx, vy):
         dirx = 0

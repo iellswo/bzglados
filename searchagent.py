@@ -142,9 +142,9 @@ class Agent(object):
                  raise Failure('A*')
             node=openNodes.get()[1]
             openList.remove(node.coord)
-            print "pop", node.coord
-            print "gscore", node.gscore
-            print "fscore", node.fscore
+            #print "pop", node.coord
+            #print "gscore", node.gscore
+            #print "fscore", node.fscore
             if self.grid[node.coord[0]][node.coord[1]][2] == 1:
                 continue
             if node.coord== problem.goal:
@@ -204,7 +204,6 @@ class Agent(object):
 
     
     def aStarCostEstimate(self, a , b):
-        #return 1
         return math.sqrt((b[1]-a[1])**2+(b[0]-a[0])**2)
         
     def nextToObject(self, node):
@@ -353,9 +352,9 @@ class Agent(object):
             return [self.adjust(problem.starting)]
         node = State()
         node.coord = problem.starting
-        path = [ (self.adjust(node.coord), self.adjust(node.coord)) ]
         node.parent = None
         node.cost = 0
+        path=[]
         stack.append(node)
         while True:
             if len(stack) == 0:
@@ -363,6 +362,8 @@ class Agent(object):
             node = stack.pop()
             explored.append(node.coord)
             recent.append(node.coord)
+            if node.parent != None:
+                path.append((self.adjust(node.parent.coord), self.adjust(node.coord)))
             if len(path) > self.step:
                 #pass path to self.ani somehow
                 self.ani.animateTuples(path, 2)
@@ -381,7 +382,7 @@ class Agent(object):
                 #print n
                 if len(recent) > 1000:
                     recent = recent[-300:]
-                path.append( (self.adjust(node.coord), self.adjust(n)) )
+                #path.append( (self.adjust(node.coord), self.adjust(n)) )
                 newnode = State()
                 newnode.coord = n
                 newnode.parent = node
