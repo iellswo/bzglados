@@ -32,16 +32,26 @@ THT = .999
 RANGE = 400
 
 # At what ratio (of the current speed) do we look ahead for obstacles
-LOOKAHEAD = 2
+LOOKAHEAD = 2.5
 
 # How much berth do we give obstacles?
-RAD = 50
+RAD = 80
 
 # How many times to we try to find an unoccupied square? (affects speed)
 TRYAGAIN = 11
 
 # How close until we say we have reached our target
 TARGETRADIUS = 100
+
+# How many times to we try and go around an obstacle before we back up
+# and set a new target
+BACKUP = 4
+
+# For how many ticks to we back up?
+BUTICKS = 3
+
+# Wiggle Variance: how wide is our wiggle?
+WV = .05
 
 ########################################################################
 
@@ -73,13 +83,16 @@ class GridAgent(object):
         # tank control elements
         tanks = self.bzrc.get_mytanks()
         t_n = len(tanks)
-        self.targets = []
+        self.targets = [(-self.offset+20, -self.offset+20), (20, -self.offset+20), (self.offset-20, 20),
+                        (20, self.offset-20), (-self.offset+20, self.offset-20)]
         self.temptargets = []
+        self.attempts = []
+        self.ticks = []
         for i in range(t_n):
-            t = self.to_world_space(( (self.world_size/t_n)*(i+.5), (self.world_size/t_n)*(i+.5) ))
-            print 'target for tank', i, 'is now', t
-            self.targets.append( t )
+            self.attempts.append(0)
+            self.ticks.append(0)
             self.temptargets.append( None )
+            self.targets.append((0, 0))
         
         # map builder components
         self.builder = MapBuilder(self.world_size, self.world_size)
@@ -146,21 +159,39 @@ class GridAgent(object):
             self.targets[tank.index] = t
         
         look_ahead = (int(tank.x + (LOOKAHEAD*tank.vx)), int(tank.y + (LOOKAHEAD*tank.vy)))
-        if self.is_occupied(self.to_grid_space(look_ahead)):
-            o_x, o_y = self.get_orientation(int(tank.vx), int(tank.vy))
-            t_x, t_y = self.targets[tank.index]
-            self.temptargets[tank.index] = (tank.x + (RAD * -o_y), tank.y + (RAD * -o_x))
+        if self.is_occupied(self.to_grid_space(look_ahead)) or self.attempts[tank.index] >= BACKUP:
+            if self.attempts[tank.index] < BACKUP:
+                o_x, o_y = self.get_orientation(int(tank.vx), int(tank.vy))
+                d_x, d_y = self.get_dominant_direction(int(tank.vx), int(tank.vy))
+                self.temptargets[tank.index] = (tank.x + (RAD * o_y * d_y), tank.y + (RAD * o_x * d_x))
+                self.attempts[tank.index] += 1
+            else:
+                print 'tank', tank.index, 'is backing up...'
+                self.backup(tank)
+                self.ticks[tank.index] += 1
+                if self.ticks[tank.index] > BUTICKS:
+                    self.ticks[tank.index] = 0
+                    self.attempts[tank.index] = 0
+                    o_x, o_y = self.get_orientation(int(tank.vx), int(tank.vy))
+                    d_x, d_y = self.get_dominant_direction(int(tank.vx), int(tank.vy))
+                    self.temptargets[tank.index] = (tank.x + (2 * RAD * o_y * -d_y), tank.y + (2 * RAD * o_x * -d_x))
+                return
         
         if self.temptargets[tank.index] is None:
             self.move_to_position(tank, self.targets[tank.index])
         else:
             self.move_to_position(tank, self.temptargets[tank.index])
         if self.is_at_target(tank):
+            self.ticks[tank.index] = 0
+            self.attempts[tank.index] = 0
             if self.temptargets[tank.index] is None:
                 self.targets[tank.index] = None
             else:
                 self.temptargets[tank.index] = None
         
+    def backup(self, tank):
+        command = Command(tank.index, -1, 0, False)
+        self.commands.append(command)
 
     def stop_all_tanks(self):
         tanks = self.bzrc.get_mytanks()
@@ -190,7 +221,7 @@ class GridAgent(object):
                                   target_x - tank.x)
         relative_angle = self.normalize_angle(target_angle - tank.angle)
         relative_angle = relative_angle
-        wiggle = random.uniform(-.2, .2)
+        wiggle = random.uniform(-WV, WV)
         command = Command(tank.index, max(0, .4-abs(relative_angle)), relative_angle+wiggle, False)
         self.commands.append(command)
         
@@ -215,9 +246,17 @@ class GridAgent(object):
         
     def distance(self, a , b):
         return math.sqrt((b[1]-a[1])**2+(b[0]-a[0])**2)
-        
+
     def is_occupied( self, p ):
-        return self.grid[p[0]][p[1]] >= THT
+        if self.is_outside_bounds(p):
+            return True
+        else:
+            return self.grid[p[0]][p[1]] >= THT
+
+    def is_outside_bounds(self, node ):
+        return (node[0] < 0 or node[1] < 0 or
+                node[0] > int(self.constants['worldsize']) - 1 or
+                node[1] > int(self.constants['worldsize']) - 1)
         
     def get_new_target(self, p):
         p_x, p_y = self.to_grid_space(p)
@@ -247,12 +286,15 @@ class GridAgent(object):
             dirx = vx/abs(vx)
         if vy != 0:
             diry = vy/abs(vy)
+        return (dirx, diry)
+        
+    def get_dominant_direction(self, vx, vy):
         if abs(vx) > abs(vy):
-            return (dirx, 0)
+            return (1, 0)
         elif abs(vy) > abs(vx):
-            return (0, diry)
+            return (0, 1)
         else:
-            return (dirx, diry)
+            return (1, 1)
 
 def main():
     # Process CLI arguments.
