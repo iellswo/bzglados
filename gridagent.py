@@ -20,16 +20,25 @@ from mapBuilder import MapBuilder
 AOR = .4
 
 # If the percentage is higher than this we assume it's an occupied square
-TH = .9
+TH = .95
 
 # If the percentage is lower than this we assume it's unoccupied
 THL = .1
 
 # The range of the search space for new target
-RANGE = 200
+RANGE = 400
 
-# How many steps we look fowards when traversing our A* path
+# At what ratio (of the current speed) do we look ahead for obstacles
 LOOKAHEAD = 2
+
+# How much berth do we give obstacles?
+RAD = 90
+
+# How many times to we try to find an unoccupied square? (affects speed)
+TRYAGAIN = 11
+
+# How close until we say we have reached our target
+TARGETRADIUS = 100
 
 ########################################################################
 
@@ -62,10 +71,12 @@ class GridAgent(object):
         tanks = self.bzrc.get_mytanks()
         t_n = len(tanks)
         self.targets = []
+        self.temptargets = []
         for i in range(t_n):
-            self.targets.append( None )
-                
-        self.explored = zeros((self.world_size, self.world_size))
+            t = self.to_world_space(( (self.world_size/t_n)*i, (self.world_size/t_n)*i ))
+            print 'target for tank', i, 'is now', t
+            self.targets.append( t )
+            self.temptargets.append( None )
         
         # map builder components
         self.builder = MapBuilder(self.world_size, self.world_size)
@@ -73,6 +84,7 @@ class GridAgent(object):
         # important bayesian components
         self.true_positive = float(self.constants['truepositive'])
         self.true_negative = float(self.constants['truenegative'])
+        
         
     def tick(self):
         #print 'tick'
@@ -102,15 +114,14 @@ class GridAgent(object):
                 x = g_x + i
                 y = g_y + j
                 
+                if self.is_decided((x, y)):
+                    continue
+                
                 # the current probability that this space is occupied
                 p_state = self.grid[x][y]
                 
-                if p_state == 0 or p_state == 1:
-                    continue
-                
                 # the probability that the sensor says it's occupied when it is occupied
                 p_sensor = self.true_positive if observed == 1 else 1-self.true_negative
-                
                 
                 # find p_observed, which is the probability that the sensor would observe
                 # what it observed taking everything into consideration
@@ -127,39 +138,38 @@ class GridAgent(object):
                     self.grid[x][y] = p_new
                 
                 self.grid[x][y] = p_new
-                
-                if self.explored[g_x+i][g_y+j] == 0:
-                    self.explored[g_x+i][g_y+j] = 1
                     
         self.builder.update_grid(self.grid)
+
 
     def move_tank(self, tank):
         
         if self.targets[tank.index] is not None and self.is_occupied(self.to_grid_space(self.targets[tank.index])):
             self.targets[tank.index] = None
         
-        look_ahead = (int(tank.x + tank.vx), int(tank.y + tank.vy))
+        look_ahead = (int(tank.x + (LOOKAHEAD*tank.vx)), int(tank.y + (LOOKAHEAD*tank.vy)))
         if self.is_occupied(self.to_grid_space(look_ahead)):
-            self.targets[tank.index] = None
+            o_x, o_y = self.get_orientation(int(tank.vx), int(tank.vy))
+            t_x, t_y = self.targets[tank.index]
+            self.temptargets[tank.index] = (tank.x + (RAD * -o_y), tank.y + (RAD * -o_x))
         
         
         if self.targets[tank.index] is None:
-            self.stop_all_tanks()
-            print 'current location:', tank.x, tank.y
-            t = raw_input('Enter a target location >- ')
-            t = t.split(',')
-            if len(t) != 2:
-                print 'invalid'
-                return
-            t[0] = int(t[0].strip())
-            t[1] = int(t[1].strip())
-            t = (t[0], t[1])
-            print 'target:', t
+            t = self.get_new_target((tank.x, tank.y))
+            print 'target for tank', tank.index, 'is now', t
             self.targets[tank.index] = t
-        self.move_to_position(tank, self.targets[tank.index])
-        if self.is_at_target(tank):
-            self.targets[tank.index] = None
         
+        if self.temptargets[tank.index] is None:
+            self.move_to_position(tank, self.targets[tank.index])
+        else:
+            self.move_to_position(tank, self.temptargets[tank.index])
+        if self.is_at_target(tank):
+            if self.temptargets[tank.index] is None:
+                self.targets[tank.index] = None
+            else:
+                self.temptargets[tank.index] = None
+        
+
     def stop_all_tanks(self):
         tanks = self.bzrc.get_mytanks()
         com = []
@@ -173,9 +183,13 @@ class GridAgent(object):
         self.commands.append(command)
         
     def is_at_target(self, tank):
-        target = self.targets[tank.index]
+        target = (0, 0)
+        if self.temptargets[tank.index] is None:
+            target = self.targets[tank.index]
+        else:
+            target = self.temptargets[tank.index]
         pos = (tank.x, tank.y)
-        return self.distance(target, pos)**2 < 2
+        return self.distance(target, pos)**2 < TARGETRADIUS
         
     def move_to_position(self, tank, target):
         """Set command to move to given coordinates."""
@@ -197,11 +211,6 @@ class GridAgent(object):
         return angle
     
     
-    # Getting the path the tank is supposed to follow
-    
-    
-    
-
     # Utility methods:
     def to_world_space(self, n):
         x, y = n
@@ -222,12 +231,35 @@ class GridAgent(object):
         #print max(0, p_x - RANGE), min(self.world_size - 1, p_x + RANGE)
         x = random.randint(max(0, p_x - RANGE), min(self.world_size - 1, p_x + RANGE))
         y = random.randint(max(0, p_y - RANGE), min(self.world_size - 1, p_y + RANGE))
-        if self.explored[x][y]:
-            return None
-        elif self.is_occupied((x, y)):
-            return None
+        
+        for i in range(TRYAGAIN):
+            if self.is_decided((x, y)):
+                x = random.randint(max(0, p_x - RANGE), min(self.world_size - 1, p_x + RANGE))
+                y = random.randint(max(0, p_y - RANGE), min(self.world_size - 1, p_y + RANGE))
+            else:
+                break
+
+        return self.to_world_space((x, y))
+            
+    def is_decided(self, p):
+        # assumes p is in grid space
+        x, y = p
+        g = self.grid[x][y]
+        return g == 0 or g == 1
+        
+    def get_orientation(self, vx, vy):
+        dirx = 0
+        diry = 0
+        if vx != 0:
+            dirx = vx/abs(vx)
+        if vy != 0:
+            diry = vy/abs(vy)
+        if abs(vx) > abs(vy):
+            return (dirx, 0)
+        elif abs(vy) > abs(vx):
+            return (0, diry)
         else:
-            return (x, y)
+            return (dirx, diry)
 
 def main():
     # Process CLI arguments.

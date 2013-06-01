@@ -6,7 +6,7 @@ OpenGL.ERROR_CHECKING = False
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
-from numpy import zeros
+from numpy import zeros, transpose
 class MapBuilder:
     
     def __init__(self,h,w):
@@ -21,8 +21,7 @@ class MapBuilder:
         glutSwapBuffers()
 
     def update_grid(self,new_grid):
-        self.grid = new_grid
-
+        self.grid = transpose(new_grid)
 
     def init_window(self, width, height):
         global window
@@ -39,20 +38,7 @@ class MapBuilder:
         glLoadIdentity()
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
-        
-        
-        
-      
 
     def hang(self):
         glutMainLoop()
 
-
-
-
-
-
-
-
-
-# vim: et sw=4 sts=4
