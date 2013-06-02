@@ -29,29 +29,33 @@ THL = .1
 THT = .999
 
 # The range of the search space for new target
-RANGE = 400
+RANGE = 450
 
 # At what ratio (of the current speed) do we look ahead for obstacles
 LOOKAHEAD = 2.5
 
 # How much berth do we give obstacles?
-RAD = 80
+RAD = 90
 
 # How many times to we try to find an unoccupied square? (affects speed)
-TRYAGAIN = 11
+TRYAGAIN = 30
 
-# How close until we say we have reached our target
-TARGETRADIUS = 100
+# How close until we say we have reached our target (distance squared)
+TARGETRADIUS = 150
 
 # How many times to we try and go around an obstacle before we back up
 # and set a new target
-BACKUP = 4
+BACKUP = 6
 
 # For how many ticks to we back up?
-BUTICKS = 3
+BUTICKS = 2
 
 # Wiggle Variance: how wide is our wiggle?
-WV = .05
+WV = .02
+
+# How far apart do tanks have to be before we tell them to back up and try 
+# somewhere else (distance squared)
+TANKRADIUS = 10
 
 ########################################################################
 
@@ -93,6 +97,7 @@ class GridAgent(object):
             self.ticks.append(0)
             self.temptargets.append( None )
             self.targets.append((0, 0))
+            print 'tank', i, 'begins with target', self.targets[i]
         
         # map builder components
         self.builder = MapBuilder(self.world_size, self.world_size)
@@ -150,6 +155,10 @@ class GridAgent(object):
 
     def move_tank(self, tank):
         
+        if self.tank_collision(tank.index):
+            self.backup(tank)
+            return
+        
         if self.targets[tank.index] is not None and self.is_occupied(self.to_grid_space(self.targets[tank.index])):
             self.targets[tank.index] = None
             
@@ -163,7 +172,9 @@ class GridAgent(object):
             if self.attempts[tank.index] < BACKUP:
                 o_x, o_y = self.get_orientation(int(tank.vx), int(tank.vy))
                 d_x, d_y = self.get_dominant_direction(int(tank.vx), int(tank.vy))
-                self.temptargets[tank.index] = (tank.x + (RAD * o_y * d_y), tank.y + (RAD * o_x * d_x))
+                t = self.contain((tank.x + (RAD * o_y * d_y), tank.y + (RAD * o_x * d_x)))
+                print 'tank', tank.index, 'is blocked, setting temporary target', t
+                self.temptargets[tank.index] = t
                 self.attempts[tank.index] += 1
             else:
                 print 'tank', tank.index, 'is backing up...'
@@ -172,9 +183,9 @@ class GridAgent(object):
                 if self.ticks[tank.index] > BUTICKS:
                     self.ticks[tank.index] = 0
                     self.attempts[tank.index] = 0
-                    o_x, o_y = self.get_orientation(int(tank.vx), int(tank.vy))
-                    d_x, d_y = self.get_dominant_direction(int(tank.vx), int(tank.vy))
-                    self.temptargets[tank.index] = (tank.x + (2 * RAD * o_y * -d_y), tank.y + (2 * RAD * o_x * -d_x))
+                    o_x, o_y = self.get_orientation(-int(tank.vx), -int(tank.vy))
+                    d_x, d_y = self.get_dominant_direction(-int(tank.vx), -int(tank.vy))
+                    self.temptargets[tank.index] = (tank.x + (2 * RAD * o_y * d_y), tank.y + (2 * RAD * o_x * d_x))
                 return
         
         if self.temptargets[tank.index] is None:
@@ -233,6 +244,15 @@ class GridAgent(object):
         elif angle > math.pi:
             angle -= 2 * math.pi
         return angle
+    
+    def tank_collision(self, index):
+        tanks = self.bzrc.get_mytanks()
+        cur_tank = [tank for tank in tanks if tank.index == index][0]
+        for tank in tanks:
+            if tank.index == index:
+                continue
+            if self.distance((cur_tank.x, cur_tank.y), (tank.x, tank.y))** 2 < TANKRADIUS:
+                return True
     
     
     # Utility methods:
@@ -295,6 +315,14 @@ class GridAgent(object):
             return (0, 1)
         else:
             return (1, 1)
+            
+    def contain(self, p):
+        x, y = p
+        x = max(x, -self.offset+1)
+        x = min(x, self.offset-1)
+        y = max(y, -self.offset+1)
+        y = min(y, self.offset-1)
+        return (x, y)
 
 def main():
     # Process CLI arguments.
