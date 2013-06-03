@@ -38,7 +38,7 @@ LOOKAHEAD = 2.5
 RAD = 90
 
 # How many times to we try to find an unoccupied square? (affects speed)
-TRYAGAIN = 30
+TRYAGAIN = 20
 
 # How close until we say we have reached our target (distance squared)
 TARGETRADIUS = 150
@@ -51,11 +51,11 @@ BACKUP = 6
 BUTICKS = 2
 
 # Wiggle Variance: how wide is our wiggle?
-WV = .02
+WV = .01
 
 # How far apart do tanks have to be before we tell them to back up and try 
 # somewhere else (distance squared)
-TANKRADIUS = 10
+TANKRADIUS = 100
 
 ########################################################################
 
@@ -115,6 +115,7 @@ class GridAgent(object):
         for tank in mytanks:
             self.update_grid(tank)
             self.move_tank(tank)
+            #self.update_grid(tank)
             
         results = self.bzrc.do_commands(self.commands)
         self.builder.draw_grid()
@@ -156,6 +157,7 @@ class GridAgent(object):
     def move_tank(self, tank):
         
         if self.tank_collision(tank.index):
+            print 'tank collision'
             self.backup(tank)
             return
         
@@ -248,11 +250,14 @@ class GridAgent(object):
     def tank_collision(self, index):
         tanks = self.bzrc.get_mytanks()
         cur_tank = [tank for tank in tanks if tank.index == index][0]
+        #print index, cur_tank.index
         for tank in tanks:
             if tank.index == index:
                 continue
+            #print index, tank.index, self.distance((cur_tank.x, cur_tank.y), (tank.x, tank.y))** 2, TANKRADIUS
             if self.distance((cur_tank.x, cur_tank.y), (tank.x, tank.y))** 2 < TANKRADIUS:
                 return True
+        return False
     
     
     # Utility methods:
