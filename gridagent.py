@@ -32,7 +32,7 @@ THT = .999
 LOOKAHEAD = 8
 
 # how wide is the search range for a new target
-RANGE = 450
+RANGE = 650
 
 # How many times do we try again to find a target
 TRYAGAIN = 20
