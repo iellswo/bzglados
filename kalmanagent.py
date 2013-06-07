@@ -5,6 +5,7 @@ import math
 import time
 
 from bzrc import BZRC, Command
+from utilities.kalman import KalmanFilter as Filter
 
 ###########################################################
 #  constants
@@ -25,7 +26,7 @@ class Agent(object):
         # world details
         self.world_size = int(self.constants['worldsize'])
         
-        self.target = (0,0)
+        self.target = (0,0, False)
         self.delta = 0.0
 
     def tick(self, time_diff):
@@ -44,17 +45,22 @@ class Agent(object):
     def get_new_target(self, tank):
         # Insert kalman filter here
         if tank.status=='alive':
-            self.target = (tank.x, tank.y)
+            #print 'alive'
+            self.target = (tank.x, tank.y, True)
+        else:
+            x, y, t = self.target
+            #print 'dead'
+            self.target = (x, y, False)
         
     def tank_controller(self, tank):
-        target_x, target_y = self.target
+        target_x, target_y, alive = self.target
         target_angle = math.atan2(target_y - tank.y,
                                   target_x - tank.x)
         relative_angle = self.normalize_angle(target_angle - tank.angle)
-        fire = False
-        if abs(relative_angle) <= .005:
-            fire = True
-        command = Command(tank.index, 0, relative_angle, fire)
+        if abs(relative_angle) <= .005 and alive:
+            self.bzrc.shoot(tank.index)
+            self.target = (target_x, target_y, False)
+        command = Command(tank.index, 0, 2*relative_angle, False)
         self.commands.append(command)
         
     def normalize_angle(self, angle):
