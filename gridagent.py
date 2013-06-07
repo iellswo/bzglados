@@ -4,7 +4,6 @@ import sys
 import math
 import time
 import random
-import curses
 
 from numpy import zeros
 from collections import deque

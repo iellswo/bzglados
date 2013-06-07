@@ -1,0 +1,101 @@
+# Kalman filter agent
+
+import sys
+import math
+import time
+
+from bzrc import BZRC, Command
+
+###########################################################
+#  constants
+
+# How long do we wait between kalman filter calculations?
+WAIT = .02
+
+###########################################################
+
+class Agent(object):
+    
+    def __init__ (self, bzrc):
+        # bzrc connections
+        self.bzrc = bzrc
+        self.constants = self.bzrc.get_constants()
+        self.commands = []
+        
+        # world details
+        self.world_size = int(self.constants['worldsize'])
+        
+        self.target = (0,0)
+        self.delta = 0.0
+
+    def tick(self, time_diff):
+        self.delta += time_diff
+                    
+        mytanks, othertanks, flags, shots = self.bzrc.get_lots_o_stuff()
+        if self.delta >= WAIT:
+            self.delta = 0.0
+            self.get_new_target(othertanks[0])
+            
+        for tank in mytanks:
+            self.tank_controller(tank)
+            
+        results = self.bzrc.do_commands(self.commands)
+        
+    def get_new_target(self, tank):
+        # Insert kalman filter here
+        if tank.status=='alive':
+            self.target = (tank.x, tank.y)
+        
+    def tank_controller(self, tank):
+        target_x, target_y = self.target
+        target_angle = math.atan2(target_y - tank.y,
+                                  target_x - tank.x)
+        relative_angle = self.normalize_angle(target_angle - tank.angle)
+        fire = False
+        if abs(relative_angle) <= .005:
+            fire = True
+        command = Command(tank.index, 0, relative_angle, fire)
+        self.commands.append(command)
+        
+    def normalize_angle(self, angle):
+        """Make any angle be between +/- pi."""
+        angle -= 2 * math.pi * int (angle / (2 * math.pi))
+        if angle <= -math.pi:
+            angle += 2 * math.pi
+        elif angle > math.pi:
+            angle -= 2 * math.pi
+        return angle
+
+
+def main():
+    # Process CLI arguments.
+    try:
+        execname, host, port = sys.argv
+    except ValueError:
+        execname = sys.argv[0]
+        print >>sys.stderr, '%s: incorrect number of arguments' % execname
+        print >>sys.stderr, 'usage: %s hostname port' % sys.argv[0]
+        sys.exit(-1)
+
+    # Connect.
+    #bzrc = BZRC(host, int(port), debug=True)
+    bzrc = BZRC(host, int(port))
+
+    agent = Agent(bzrc)
+
+    prev_time = time.time()
+
+    # Run the agent
+    try:
+        while True:
+            now = time.time()
+            time_diff = now - prev_time
+            prev_time = now
+            agent.tick(time_diff)
+    except KeyboardInterrupt:
+        print "Exiting due to keyboard interrupt."
+        bzrc.close()
+
+
+if __name__ == '__main__':
+    main()
