@@ -69,7 +69,7 @@ class Agent(object):
                                   target_x - tank.x)
         relative_angle = self.normalize_angle(target_angle - tank.angle)
 
-        command = Command(tank.index, max(-.05, 1-abs(relative_angle)), relative_angle, False)
+        command = Command(tank.index, max(-.03, .7-abs(relative_angle)), relative_angle, False)
         self.commands.append(command)
 
     def normalize_angle(self, angle):

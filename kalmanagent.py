@@ -19,7 +19,7 @@ WAIT = .2
 NOISE = 5
 
 # We adjust this to make change:
-FUDGE = 5
+FUDGE = 5.35
 
 ###########################################################
 
@@ -50,7 +50,7 @@ class Agent(object):
         mytanks, othertanks, flags, shots = self.bzrc.get_lots_o_stuff()
         target = othertanks[0]
         me = mytanks[0]
-        self.kfilter.update((target.x, target.y), time_diff)
+        #self.kfilter.update((target.x, target.y), time_diff)
         if self.delta >= WAIT:
             
             #print 'update', random.uniform(-.5, .5)
@@ -74,24 +74,26 @@ class Agent(object):
             x, y = self.kfilter.get_enemy_position()
             self.painter.change_enemy_position((x, y))
             d_t = FUDGE * self.shot_speed / self.distance((me.x, me.y), (x, y))
+            #print d_t
             x, y = self.kfilter.get_target(d_t)
-            #self.painter.change_target((x, y))
+            self.painter.change_target((x, y))
             self.target = (x, y, True)
         else:
             #self.painter.add_nofollow_tank(x,y)
             x, y, t = self.target
+            self.kfilter.reset()
             #print 'dead'
             self.target = (x, y, False)
         
     def tank_controller(self, tank):
         target_x, target_y, alive = self.target
+        distance = self.distance(self.target, (tank.x, tank.y))
         target_angle = math.atan2(target_y - tank.y,
                                   target_x - tank.x)
         relative_angle = self.normalize_angle(target_angle - tank.angle)
         if abs(relative_angle) <= .005 and alive:
             self.bzrc.shoot(tank.index)
-            self.target = (target_x, target_y, False)
-        command = Command(tank.index, 0, 5*relative_angle, False)
+        command = Command(tank.index, 0, relative_angle*(distance/50), False)
         self.commands.append(command)
         
     def normalize_angle(self, angle):
