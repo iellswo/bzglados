@@ -54,7 +54,7 @@ class Agent(object):
         for tank in mytanks:
             if tank.y-(self.target_by_tank_num[tank.index])==0:
                 self.target_by_tank_num[tank.index]=-1*self.target_by_tank_num[tank.index]
-                print "switching target"
+                #print "switching target"
                 
             self.move_to_position(tank,tank.x,self.target_by_tank_num[tank.index])
 

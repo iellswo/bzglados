@@ -27,6 +27,7 @@ class drawUtil:
         return x+(self.width/2), y+(self.height/2)
     
     def draw_block(self, coord,color,previous_coord):
+        x , y= self.to_canvas_space( coord)
         for i in range(y-4,y+3):
             if i>self.height:
                 break
@@ -105,7 +106,7 @@ class drawUtil:
     def add_shooting_tank(self, coord):
         friendly_color=[0,0,1]
         x,y=self.to_canvas_space(coord)
-        draw_block(coord,friendly_color,self.friendly)
+        self.draw_block(coord,friendly_color,self.friendly)
         self.friendly=coord
     
     def add_nofollow_tank(self, coord):

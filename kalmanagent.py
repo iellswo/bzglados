@@ -42,6 +42,7 @@ class Agent(object):
             self.get_new_target(othertanks[0])
             
         for tank in mytanks:
+            self.painter.add_shooting_tank((tank.x,tank.y))
             self.tank_controller(tank)
             
         results = self.bzrc.do_commands(self.commands)
@@ -51,10 +52,11 @@ class Agent(object):
         if tank.status=='alive':
             #print 'alive'
             if self.target[0]!=tank.x and self.target[1]!=tank.y:
-                    self.painter.add_shot((tank.x,tank.y))
+                    self.painter.add_enemy_tank((tank.x,tank.y))
                     self.painter.draw_grid()
             self.target = (tank.x, tank.y, True)
         else:
+            self.painter.add_nofollow_tank(x,y)
             x, y, t = self.target
             #print 'dead'
             self.target = (x, y, False)
