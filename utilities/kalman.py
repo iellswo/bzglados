@@ -56,4 +56,4 @@ class KalmanFilter():
     def get_enemy_position(self):
         m = self.H * self.mu_t
         pos = (m[0, 0], m[0, 1])
-        print pos
+        return pos
