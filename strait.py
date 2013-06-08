@@ -56,18 +56,20 @@ class Agent(object):
                 self.target_by_tank_num[tank.index]=-1*self.target_by_tank_num[tank.index]
                 #print "switching target"
                 
-            self.move_to_position(tank,tank.x,self.target_by_tank_num[tank.index])
+            self.move_to_position(tank,(0,self.target_by_tank_num[tank.index]))
 
         results = self.bzrc.do_commands(self.commands)
 
     
 
-    def move_to_position(self, tank, target_x, target_y):
+    def move_to_position(self, tank, target):
         """Set command to move to given coordinates."""
+        target_x, target_y = target
         target_angle = math.atan2(target_y - tank.y,
                                   target_x - tank.x)
         relative_angle = self.normalize_angle(target_angle - tank.angle)
-        command = Command(tank.index, 1, 2 * relative_angle, False)
+
+        command = Command(tank.index, max(-.05, 1-abs(relative_angle)), relative_angle, False)
         self.commands.append(command)
 
     def normalize_angle(self, angle):

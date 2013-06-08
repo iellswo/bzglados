@@ -6,7 +6,7 @@ from numpy import matrix, identity
 #######################################
 
 # friction coeffient
-C = 0.1
+C = 0.3
 
 #######################################
 
@@ -24,11 +24,11 @@ class KalmanFilter():
                               
         # constants:
         self.E_x = matrix([[0.1, 0,   0,   0,   0,   0],
-                          [0,   0.1, 0,   0,   0,   0],
-                          [0,   0,   80,  0,   0,   0],
-                          [0,   0,   0,   0.1, 0,   0],
-                          [0,   0,   0,   0,   0.1, 0],
-                          [0,   0,   0,   0,   0,   80]])
+                           [0,   0.1, 0,   0,   0,   0],
+                           [0,   0,   100,  0,   0,   0],
+                           [0,   0,   0,   0.1, 0,   0],
+                           [0,   0,   0,   0,   0.1, 0],
+                           [0,   0,   0,   0,   0,   100]])
         self.H = matrix([[1.0, 0, 0, 0, 0, 0], [0, 0, 0, 1.0, 0, 0]])
         self.E_z = matrix([[noise**2, 0], [0, noise**2]])
 
@@ -55,5 +55,17 @@ class KalmanFilter():
         
     def get_enemy_position(self):
         m = self.H * self.mu_t
+        pos = (m[0, 0], m[0, 1])
+        return pos
+        
+    def get_target(self, D_t):
+        F = matrix([[1, D_t, D_t**2/2, 0, 0, 0],
+                   [0, 1,   D_t,       0, 0, 0],
+                   [0, -C,  1,         0, 0, 0],
+                   [0, 0, 0, 1, D_t, D_t**2/2],
+                   [0,  0,  0,       0, 1, D_t],
+                   [0, 0, 0, 0, -C, 1]])
+        mu_next = F * self.mu_t
+        m = self.H * mu_next
         pos = (m[0, 0], m[0, 1])
         return pos
