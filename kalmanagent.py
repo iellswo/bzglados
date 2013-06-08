@@ -12,7 +12,7 @@ from utilities.OGLDrawUtil import drawUtil
 #  constants
 
 # How long do we wait between kalman filter calculations?
-WAIT = .02
+WAIT = .2
 
 ###########################################################
 
@@ -34,6 +34,7 @@ class Agent(object):
 
     def tick(self, time_diff):
         
+        #print time_diff
         self.delta += time_diff
         
         mytanks, othertanks, flags, shots = self.bzrc.get_lots_o_stuff()
@@ -56,7 +57,7 @@ class Agent(object):
                     self.painter.draw_grid()
             self.target = (tank.x, tank.y, True)
         else:
-            self.painter.add_nofollow_tank(x,y)
+            #self.painter.add_nofollow_tank(x,y)
             x, y, t = self.target
             #print 'dead'
             self.target = (x, y, False)
