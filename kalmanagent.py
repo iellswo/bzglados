@@ -6,6 +6,7 @@ import time
 
 from bzrc import BZRC, Command
 from utilities.kalman import KalmanFilter as Filter
+from utilities.OGLDrawUtil import drawUtil
 
 ###########################################################
 #  constants
@@ -20,6 +21,7 @@ class Agent(object):
     def __init__ (self, bzrc):
         # bzrc connections
         self.bzrc = bzrc
+       
         self.constants = self.bzrc.get_constants()
         self.commands = []
         
@@ -28,10 +30,12 @@ class Agent(object):
         
         self.target = (0,0, False)
         self.delta = 0.0
+        self.painter=drawUtil(self.world_size,self.world_size)
 
     def tick(self, time_diff):
+        
         self.delta += time_diff
-                    
+        
         mytanks, othertanks, flags, shots = self.bzrc.get_lots_o_stuff()
         if self.delta >= WAIT:
             self.delta = 0.0
@@ -46,6 +50,9 @@ class Agent(object):
         # Insert kalman filter here
         if tank.status=='alive':
             #print 'alive'
+            if self.target[0]!=tank.x and self.target[1]!=tank.y:
+                    self.painter.add_shot((tank.x,tank.y))
+                    self.painter.draw_grid()
             self.target = (tank.x, tank.y, True)
         else:
             x, y, t = self.target
@@ -90,13 +97,15 @@ def main():
     agent = Agent(bzrc)
 
     prev_time = time.time()
-
+  
     # Run the agent
     try:
         while True:
+            
             now = time.time()
             time_diff = now - prev_time
             prev_time = now
+            
             agent.tick(time_diff)
     except KeyboardInterrupt:
         print "Exiting due to keyboard interrupt."
