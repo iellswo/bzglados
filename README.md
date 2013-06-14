@@ -3,21 +3,22 @@ bzglados
 
 AI scripts for bzrflag game.
 
-In order to make it useful you need bzrflag package.  Inside of a common directory clone
-the bzglados package, as well as bzrflag (git clone git://aml.cs.byu.edu/bzrflag.git)
+In order to make it useful you need bzrflag package.  Inside of a common directory clone the bzglados package, as well as bzrflag (git clone git://aml.cs.byu.edu/bzrflag.git)
 
-Pull the bzagents directory out of bzrflag into the parent.
+The command line options for bzrflag can be found using the -h flag.
 
-Make a rungame.sh script in the parent directory.  Starting settings:
+The pidgeons folder contains a few 'clay pidgeons', which can be used as target practice.
 
-./bzrflag/bin/bzrflag --world=bzrflag/maps/four_ls.bzw --friendly-fire --red-port=50100 --green-port=50101 --purple-port=50102 --blue-port=50103 $@ &
-sleep 2
-python bzagents/agent0.py localhost 50100 &
-python bzagents/agent0.py localhost 50101 &
-python bzagents/agent0.py localhost 50102 &
-python bzagents/agent0.py localhost 50103 &
+The utilities folder contains all of the utility code used by the various agents and at other stages in development and testing.
 
+The agents:
 
-Changing the lines with the agents with change what script will govern that team.
+glados.py:  Our final agent.  This is the competitive agent that will play a game of capture the flag.
 
-Maps can be changed by selecting different maps from bzrflag/mapss
+gridagent.py: This agent uses a bayesian filter to filter out noise and explore the map to discover obstacles.
+
+kalmanagent.py: Uses a kalman filter to filter out position noise given by the server for a tank.  The agent itself stands still and attempts to shoot a moving (or possibly still) target.  The pidgeons are great for testing this agent.
+
+pfagent.py: Uses potential fields only to navigate the world and capture the flag.  Server must report obstacles for this agent to run.
+
+searchagent.py: Uses various searches to find a path to the enemy flag.  Does not control tanks, just prints to the screen using gnuplot library.
