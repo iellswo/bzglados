@@ -16,7 +16,7 @@ from utilities.pygameDrawUtil import DrawUtil
 WAIT = .2
 
 # What is the posnoise?
-NOISE = 5
+NOISE = 3
 
 # We adjust this to make change:
 FUDGE = 5.35
