@@ -48,20 +48,53 @@ class Controller(object):
         self.filters = []
         
 
-        
+    # every tick:
     def tick(self, time_diff):
         mytanks, othertanks, flags, shots = self.bzrc.get_lots_o_stuff()
-        target = flags[0]
-        for 
+        target = flags[0] 
         if target.color == self.team:
             target = flags[1]
         for tank in mytanks:
             self.tank_control(tank, target, othertanks, shots)
-        
-    def tank_control(self, tank, target, othertanks, shots):
-        
 
-    # Main tank control methods:
+ 
+    # Main tank control methods:       
+    def tank_control(self, tank, target, othertanks, shots):
+        index = tank.index
+        if self.states[index] == State.Running:
+            if len(self.paths[index]) <= 2:
+                self.searcher.descretize_grid(self.grid) # maybe?
+                # spawn a search thread, and change state
+                self.states[index] = State.Searching
+                return
+            
+            t = self.paths[index][1]
+            if self.is_occupied(t):
+                # spawn a search thread, and change state
+                self.states[index] = State.Searching
+                return
+            self.update_grid(tank)
+            self.move_to_position(tank, self.to_world_space(t))
+            if self.distance((tank.x, tank.y), self.to_world_space(t)) < HEREYET:
+                self.paths[index] = self.paths[index][1:]
+            
+            
+        elif self.states[index] == State.Searching:
+            # check to see if the thread is finished
+            # if it is, then set that path and change state to running/returning
+            # if it is not, find closest tank and target them
+            
+        elif self.states[index] == State.Returning:
+            if len(self.paths[index]) <= 2:
+                self.states[index] = State.Running
+                return
+            
+            t = self.paths[index][1]
+            self.move_to_position(tank, self.to_world_space(t))
+            
+        else:
+            pass
+
     def update_grid(self, tank):
         """Gets the occgrid from the server for the current tank
            It then updates the world grid."""
@@ -74,7 +107,8 @@ class Controller(object):
                 x = g_x + i
                 y = g_y + j
                 self.grid[x][y] = t_grid[i][j]
-
+                
+        
     # Utility methods:
     def to_world_space(self, n):
         x, y = n
