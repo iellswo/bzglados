@@ -8,9 +8,9 @@ import random
 from numpy import zeros
 from collections import deque
 
-from bzrc import BZRC, Command
-from mapBuilder import MapBuilder
-from searcher import Searcher, Failure
+from utilities.bzrc import BZRC, Command
+from utilities.mapBuilder import MapBuilder
+from utilities.searcher import Searcher, Failure
 
 ########################################################################
 # constants change behaviour:

@@ -4,8 +4,8 @@ import sys
 import math
 import time
 
-from pfgen import PFGEN
-from bzrc import BZRC, Command
+from utilities.pfgen import PFGEN
+from utilities.bzrc import BZRC, Command
 
 class Agent(object):
     

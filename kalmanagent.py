@@ -5,7 +5,7 @@ import math
 import time
 #import random
 
-from bzrc import BZRC, Command
+from utilities.bzrc import BZRC, Command
 from utilities.kalman import KalmanFilter as Filter
 from utilities.pygameDrawUtil import DrawUtil
 

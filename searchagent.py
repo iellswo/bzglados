@@ -6,11 +6,11 @@ import thread
 
 from Queue import PriorityQueue
 
-from animation import ANIMATION as Animation
+from utilities.animation import ANIMATION as Animation
 
 from collections import deque
 
-from bzrc import BZRC, Command
+from utilities.bzrc import BZRC, Command
     
 class State(object):
     pass
