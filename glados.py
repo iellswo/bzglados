@@ -6,10 +6,13 @@
 import sys
 import math
 import time
+import threading
+import Queue
 
 from numpy import zeros
-from bzrc import BZRC, Command
+from utilities.bzrc import BZRC, Command
 from utilities.kalman import KalmanFilter as Filter
+from utilities.search import Searcher
 
 ###########################################################
 #  constants
@@ -22,6 +25,24 @@ NOISE = 3
 
 class State:
     Running, Searching, Returning, Shadowing = range(4)
+    
+class myThread(threading.Thread:
+    def __init__(self,grid,queue,worldSize,start,end,queueLock):
+        threading.Thread.__init__(self)
+        self.grid=copy.copy(grid)
+        self.queue=queue
+        self.worldSize=worldSize
+        self.start=start
+        self.end=end
+        self.queueLock=queueLock
+        
+    def run():
+        self.search=Searcher(self.worldSize)
+        self.search.descretize_grid(self.grid)
+        self.search.get_path(self.queue,self.queueLock,self.start,self.end)
+        
+        
+    
 
 class Controller(object):
     
@@ -41,9 +62,13 @@ class Controller(object):
         
         self.states = []
         self.paths = []
+        self.threadQ = []
+        self.QLocks=[]
         for tank in mytanks:
             self.states.append(State.Running)
             self.paths.append([])
+            self.threadQ.append(Queue())
+            self.QLocks.append(threading.Lock())
         
         self.filters = []
         
@@ -71,6 +96,9 @@ class Controller(object):
             t = self.paths[index][1]
             if self.is_occupied(t):
                 # spawn a search thread, and change state
+                
+                thread=myThread(self.grid,self.threadQ[index],self.world_size,(tank.x, tank.y),(target.x,target.y),QLocks[index])
+                thread.start()
                 self.states[index] = State.Searching
                 return
             self.update_grid(tank)
@@ -81,8 +109,16 @@ class Controller(object):
             
         elif self.states[index] == State.Searching:
             # check to see if the thread is finished
+            QLocks[index].acquire()
+            if not threadQ[index].empty():
             # if it is, then set that path and change state to running/returning
-            # if it is not, find closest tank and target them
+                self.paths[index]=threadQ[index].get()
+                self.states[index] = State.Running
+                QLocks[index].release()
+            else:
+                QLocks[index].release()
+             # if it is not, find closest tank and target them
+           
             
         elif self.states[index] == State.Returning:
             if len(self.paths[index]) <= 2:

@@ -1,4 +1,5 @@
 import math
+import threading
 
 from numpy import zeros
 from Queue import PriorityQueue
@@ -55,9 +56,13 @@ class Searcher():
                 print self.grid[i][j],
             print ''
             
-    def get_path(self, start, end):
+    def get_path(self,queue,queueLock, start, end):
         problem = Problem(self.descretize_point(start), self.descretize_point(end))
-        return self.a_star(problem)
+        result=self.a_star(problem)
+        queueLock.acquire()
+        queue.put(result)
+        queueLock.release()
+        return result
     
     def a_star(self, problem):
         node = {}
