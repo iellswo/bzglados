@@ -43,9 +43,9 @@ class DrawUtil:
             
     def update_display(self):
         self.screen.fill(BGCOLOR)
-        pygame.draw.circle(self.screen, MECOLOR, self.me, 4)
+        #pygame.draw.circle(self.screen, MECOLOR, self.me, 4)
         pygame.draw.circle(self.screen, ENCOLOR, self.enemy, 4)
-        pygame.draw.circle(self.screen, TACOLOR, self.target, 4)
+        #pygame.draw.circle(self.screen, TACOLOR, self.target, 4)
         
         for p in self.trail:
             pygame.draw.circle(self.screen, OLCOLOR, p, 1)

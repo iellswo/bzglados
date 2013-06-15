@@ -8,11 +8,13 @@ import math
 import time
 import threading
 import Queue
+import copy
 
+from random import randint
 from numpy import zeros
 from utilities.bzrc import BZRC, Command
 from utilities.kalman import KalmanFilter as Filter
-from utilities.search import Searcher
+from utilities.pygameDrawUtil import DrawUtil # painter
 
 ###########################################################
 #  constants
@@ -25,24 +27,7 @@ NOISE = 3
 
 class State:
     Running, Searching, Returning, Shadowing = range(4)
-    
-class myThread(threading.Thread:
-    def __init__(self,grid,queue,worldSize,start,end,queueLock):
-        threading.Thread.__init__(self)
-        self.grid=copy.copy(grid)
-        self.queue=queue
-        self.worldSize=worldSize
-        self.start=start
-        self.end=end
-        self.queueLock=queueLock
-        
-    def run():
-        self.search=Searcher(self.worldSize)
-        self.search.descretize_grid(self.grid)
-        self.search.get_path(self.queue,self.queueLock,self.start,self.end)
-        
-        
-    
+
 
 class Controller(object):
     
@@ -58,78 +43,59 @@ class Controller(object):
         self.grid = zeros((self.world_size, self.world_size))
         self.team = self.constants['team']
         
-        mytanks, othertanks, flags, shots = self.bzrc.get_lots_o_stuff()
+        self.shot_speed = float(self.constants['shotspeed'])
         
+        mytanks, othertanks, flags, shots = self.bzrc.get_lots_o_stuff()
+        self.enemies = [tank for tank in othertanks if tank.color != self.team]
         self.states = []
         self.paths = []
-        self.threadQ = []
-        self.QLocks=[]
+
+        self.painter=DrawUtil(self.world_size) #painter
+
         for tank in mytanks:
             self.states.append(State.Running)
             self.paths.append([])
-            self.threadQ.append(Queue())
-            self.QLocks.append(threading.Lock())
         
         self.filters = []
+        for tank in self.enemies:
+            self.filters.append(Filter(NOISE))
         
 
     # every tick:
     def tick(self, time_diff):
         mytanks, othertanks, flags, shots = self.bzrc.get_lots_o_stuff()
+        self.enemies = [tank for tank in othertanks if tank.color !=
+                        self.constants['team']]
         target = flags[0] 
         if target.color == self.team:
             target = flags[1]
+            
+        for enemigo in self.enemies:
+            color = enemigo.callsign[:-1]
+            index = int(enemigo.callsign[-1])
+            if color != 'green':
+                continue
+            if enemigo.status != 'alive':
+                continue
+                
+            self.painter.add_observed((enemigo.x,enemigo.y)) # painter
+            
+            self.filters[index].update((enemigo.x, enemigo.y), time_diff)
+            if index == 0:
+                x, y = self.filters[0].get_enemy_position()
+                
+                self.painter.change_enemy_position((x, y)) # painter
+            
+        self.painter.update_display() # painter
+            
         for tank in mytanks:
-            self.tank_control(tank, target, othertanks, shots)
+            pass
+            #self.tank_control(tank, target, othertanks, shots)
 
- 
+
     # Main tank control methods:       
     def tank_control(self, tank, target, othertanks, shots):
-        index = tank.index
-        if self.states[index] == State.Running:
-            if len(self.paths[index]) <= 2:
-                self.searcher.descretize_grid(self.grid) # maybe?
-                # spawn a search thread, and change state
-                self.states[index] = State.Searching
-                return
-            
-            t = self.paths[index][1]
-            if self.is_occupied(t):
-                # spawn a search thread, and change state
-                
-                thread=myThread(self.grid,self.threadQ[index],self.world_size,(tank.x, tank.y),(target.x,target.y),QLocks[index])
-                thread.start()
-                self.states[index] = State.Searching
-                return
-            self.update_grid(tank)
-            self.move_to_position(tank, self.to_world_space(t))
-            if self.distance((tank.x, tank.y), self.to_world_space(t)) < HEREYET:
-                self.paths[index] = self.paths[index][1:]
-            
-            
-        elif self.states[index] == State.Searching:
-            # check to see if the thread is finished
-            QLocks[index].acquire()
-            if not threadQ[index].empty():
-            # if it is, then set that path and change state to running/returning
-                self.paths[index]=threadQ[index].get()
-                self.states[index] = State.Running
-                QLocks[index].release()
-            else:
-                QLocks[index].release()
-             # if it is not, find closest tank and target them
-           
-            
-        elif self.states[index] == State.Returning:
-            if len(self.paths[index]) <= 2:
-                self.states[index] = State.Running
-                return
-            
-            t = self.paths[index][1]
-            self.move_to_position(tank, self.to_world_space(t))
-            
-        else:
-            pass
+        pass
 
     def update_grid(self, tank):
         """Gets the occgrid from the server for the current tank
@@ -144,6 +110,15 @@ class Controller(object):
                 y = g_y + j
                 self.grid[x][y] = t_grid[i][j]
                 
+    def move_to_position(self, tank, target):
+        """Set command to move to given coordinates."""
+        target_x, target_y = target
+        target_angle = math.atan2(target_y - tank.y,
+                                  target_x - tank.x)
+        relative_angle = self.normalize_angle(target_angle - tank.angle)
+        relative_angle = relative_angle/6
+        command = Command(tank.index, max(-.05, .3-abs(relative_angle)), relative_angle, False)
+        self.commands.append(command)
         
     # Utility methods:
     def to_world_space(self, n):
