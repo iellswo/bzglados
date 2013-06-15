@@ -71,6 +71,7 @@ class Agent(object):
         target_vector = self.pfg.generate_fields(tank.x, tank.y)
         #print "tank", tank.x, tank.y
         #print "target", target_vector[0], target_vector[1]
+        
         self.move_to_position(tank, target_vector[0], target_vector[1])
         
     def move_to_position(self, tank, target_x, target_y):
