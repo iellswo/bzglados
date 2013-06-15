@@ -14,7 +14,8 @@ from random import randint
 from numpy import zeros
 from utilities.bzrc import BZRC, Command
 from utilities.kalman import KalmanFilter as Filter
-from utilities.pygameDrawUtil import DrawUtil # painter
+from utilities.localpfgen import PFGEN as Generator
+from utilities.pygamedrawutil import DrawUtil # painter
 
 ###########################################################
 #  constants
@@ -22,11 +23,26 @@ from utilities.pygameDrawUtil import DrawUtil # painter
 # what is the posnoise?
 NOISE = 3
 
+# What is the spread used by the potential fields?
+SPREAD = 26
+
+# What is the Obstacle Scale?
+SCALE = 3
+
 #
 ###########################################################
 
+def find(f, seq):
+    """Return first item in sequence where f(item) == True."""
+    for item in seq:
+        if f(item):
+            return item
+
 class State:
-    Running, Searching, Returning, Shadowing = range(4)
+    Runner, Captor, Hunter, Guard, Shadow, Dead = range(6)
+    
+class FireMode:
+    Safety, Semi, Auto = range(3)
 
 
 class Controller(object):
@@ -40,7 +56,7 @@ class Controller(object):
         # game details
         self.world_size = int(self.constants['worldsize'])
         self.offset = self.world_size/2
-        self.grid = zeros((self.world_size, self.world_size))
+
         self.team = self.constants['team']
         
         self.shot_speed = float(self.constants['shotspeed'])
@@ -48,17 +64,20 @@ class Controller(object):
         mytanks, othertanks, flags, shots = self.bzrc.get_lots_o_stuff()
         self.enemies = [tank for tank in othertanks if tank.color != self.team]
         self.states = []
-        self.paths = []
+        self.flag = find(lambda flag: flag.color != self.team, flags)
+        
+        self.base = find(lambda base: base.color == self.team, self.bzrc.get_bases())
 
         self.painter=DrawUtil(self.world_size) #painter
 
         for tank in mytanks:
-            self.states.append(State.Running)
-            self.paths.append([])
+            self.states.append(State.Runner)
         
         self.filters = []
         for tank in self.enemies:
             self.filters.append(Filter(NOISE))
+            
+        self.compass = Generator(self.world_size, SPREAD, SCALE)
         
 
     # every tick:
@@ -66,49 +85,57 @@ class Controller(object):
         mytanks, othertanks, flags, shots = self.bzrc.get_lots_o_stuff()
         self.enemies = [tank for tank in othertanks if tank.color !=
                         self.constants['team']]
-        target = flags[0] 
-        if target.color == self.team:
-            target = flags[1]
-            
+        self.flag = find(lambda flag: flag.color != self.team, flags)
+
         for enemigo in self.enemies:
             color = enemigo.callsign[:-1]
             index = int(enemigo.callsign[-1])
-            if color != 'green':
-                continue
             if enemigo.status != 'alive':
                 continue
                 
             self.painter.add_observed((enemigo.x,enemigo.y)) # painter
             
             self.filters[index].update((enemigo.x, enemigo.y), time_diff)
+            # painter
             if index == 0:
                 x, y = self.filters[0].get_enemy_position()
                 
-                self.painter.change_enemy_position((x, y)) # painter
+                self.painter.change_enemy_position((x, y)) # /painter
             
         self.painter.update_display() # painter
             
-        for tank in mytanks:
-            pass
-            #self.tank_control(tank, target, othertanks, shots)
+        for tank, state in zip(mytanks, self.states):
+            if state == State.Dead:
+                continue
+            if tank.status != 'alive':
+                self.states[tank.index] == State.Dead
+                continue
+            self.tank_control(tank, state)
+        
+        results = self.bzrc.do_commands(self.commands)
 
 
     # Main tank control methods:       
-    def tank_control(self, tank, target, othertanks, shots):
-        pass
+    def tank_control(self, tank, state):
+        goal = None
+        mode = None
+        if state == State.Runner:
+            goal = (self.flag.x, self.flag.y)
+            mode = FireMode.Safety
+        else:
+            goal = (self.flag.x, self.flag.y)
+            mode = FireMode.Safety
+        g_x, g_y = goal
+        try:
+            m0veto = self.compass.use_grid(self.bzrc.get_occgrid(tank.index),
+                                           tank.x, tank.y, g_x, g_y, 1)
+            self.move_to_position(tank, m0veto)
+        except Exception:
+            print 'crisis averted'
+            return
+        # targeting code here.
+        
 
-    def update_grid(self, tank):
-        """Gets the occgrid from the server for the current tank
-           It then updates the world grid."""
-        t_start, t_grid = self.bzrc.get_occgrid(tank.index)
-        #print t_start
-        g_x, g_y = self.to_grid_space(t_start)
-        #print g_start
-        for i in range(len(t_grid)):
-            for j in range(len(t_grid[i])):
-                x = g_x + i
-                y = g_y + j
-                self.grid[x][y] = t_grid[i][j]
                 
     def move_to_position(self, tank, target):
         """Set command to move to given coordinates."""
@@ -116,9 +143,18 @@ class Controller(object):
         target_angle = math.atan2(target_y - tank.y,
                                   target_x - tank.x)
         relative_angle = self.normalize_angle(target_angle - tank.angle)
-        relative_angle = relative_angle/6
-        command = Command(tank.index, max(-.05, .3-abs(relative_angle)), relative_angle, False)
+        relative_angle = relative_angle
+        command = Command(tank.index, max(-.05, .8-abs(relative_angle)), relative_angle, False)
         self.commands.append(command)
+        
+    def normalize_angle(self, angle):
+        """Make any angle be between +/- pi."""
+        angle -= 2 * math.pi * int (angle / (2 * math.pi))
+        if angle <= -math.pi:
+            angle += 2 * math.pi
+        elif angle > math.pi:
+            angle -= 2 * math.pi
+        return angle
         
     # Utility methods:
     def to_world_space(self, n):
