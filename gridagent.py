@@ -9,7 +9,7 @@ from numpy import zeros
 from collections import deque
 
 from utilities.bzrc import BZRC, Command
-from utilities.mapBuilder import MapBuilder
+from utilities.mapbuilder import MapBuilder
 from utilities.searcher import Searcher, Failure
 
 ########################################################################

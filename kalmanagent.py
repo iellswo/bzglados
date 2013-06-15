@@ -7,7 +7,7 @@ import time
 
 from utilities.bzrc import BZRC, Command
 from utilities.kalman import KalmanFilter as Filter
-from utilities.pygameDrawUtil import DrawUtil
+from utilities.pygamedrawdtil import DrawUtil
 
 ###########################################################
 #  constants
