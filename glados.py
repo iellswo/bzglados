@@ -127,8 +127,8 @@ class Controller(object):
             mode = FireMode.Safety
         g_x, g_y = goal
         try:
-            m0veto = self.compass.use_grid(self.bzrc.get_occgrid(tank.index),
-                                           tank.x, tank.y, g_x, g_y, 1)
+            start, grid = self.bzrc.get_occgrid(tank.index)
+            m0veto = self.compass.use_grid(grid, tank.x, tank.y, g_x, g_y, 1)
             self.move_to_position(tank, m0veto)
         except Exception:
             print 'crisis averted'
