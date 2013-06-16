@@ -101,13 +101,9 @@ class PFGEN:
     def generate_fields(self, x, y,grid):
         
         x1, y1 = self.generate_attractive_fields(x, y, self.goal)
-        #print "attractive", x1, y1
-        #x2, y2 = self.generate_repulsive_fields(x, y)
-        #print "repulsive", x2, y2
-        #x3, y3 = self.generate_tangental_fields(x, y)
-        #print "tangental", x3, y3
+        
         x2, y2 =self.use_grid(grid,x,y,self.goal['center'][0],self.goal['center'][1],1)
-        #print x1,y1
+        
         return (x+x1+x2), (y+y1+y2)
                   
     
@@ -119,45 +115,29 @@ class PFGEN:
   
     
     def use_grid(self, grid,x,y,gx,gy,ocupiedVal):
-         #print x
+         
         if x < (-self.worldSize/2)+50 or y < (-self.worldSize/2)+50 or x > (self.worldSize/2-51) or y > (self.worldSize/2-51):
-            #print "x in function="+str(x)+"y in function="+str(y)+""
+           
             return 0,0
 
-        ocupiedVal=.9
-        spread=10
-       
-        goalRadius=2.5
-        goalScale=1
-        fx = 0.0
-        fy = 0.0
-        
-        
-        distance = math.sqrt( (gx - x)**2  +  (gy - y)**2 )
-        theta = math.atan2((gy - y), (gx - x))
-        if distance < goalRadius:
-            fx = 0
-            fx = 0
-        elif goalRadius <= distance <= (spread + goalRadius):
-            fx = goalScale * (distance-goalRadius) * math.cos(theta)
-            fy = goalScale * (distance-goalRadius) * math.sin(theta)
-        elif distance>(spread+goalRadius):
-            fx = goalScale * math.cos(theta)
-            fy = goalScale * math.sin(theta)
-        #print fx,fy
         #the array containing the number of occupied in each quadrant
+        
         quadrant=[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]
+        
         #the array containing the aproximate center point of each quadrant
+        
         center=[
         [x-(len(grid)/3),y+(len(grid)/3)],[x,y+(len(grid)/3)],[x+(len(grid)/3),y+(len(grid)/3)],
         [x-(len(grid)/3),y]              ,[x,y]              ,[x+(len(grid)/3),y],
         [x-(len(grid)/3),y-(len(grid)/3)],[x,y-(len(grid)/3)],[x+(len(grid)/3),y-(len(grid)/3)]
         ]
-        tallie=0
+        
+        
+        
         #this loop populates the array 'quadrant' with number of occupied cells
         for i in range(0,len(grid)):
             for j in range(0,len(grid)):
-                tallie+=1
+                
                 if j < len(grid)/3:
                     if i < len(grid)/3:
                         #print("xy:"+str(i)+" , "+str(j)+"\n")
@@ -200,36 +180,17 @@ class PFGEN:
         q=0
         rfx=0
         rfy=0
-        objScale=.75
-        # we might be able use shrinkCase if we can verify that we have 2 strong quadrands surounding a weaker one in the direction we should go.
-        # this would scale rfx or rxy based on wether we can deduce the likely hood of a path
-        shrinkCase=1;
+
+       
         
         
         for q in range(0,len(quadrant)):
             if not q==4:
                 distance = math.sqrt( (center[q][0] - x)**2 +  (center[q][1] - y)**2 )
                 theta = math.atan2((center[q][1] - y), (center[q][0] - x)) + math.pi/4
-        # i'm thinking since this is tangential
-           
-            #if q%2==1:
-            
                 rfx += -math.copysign(50, math.cos(theta))*  (float(quadrant[q])/(float(len(grid))/float(3))**2)
                 rfy += -math.copysign(50, math.sin(theta))*  (float(quadrant[q])/(float(len(grid))/float(3))**2)
-            #else:
-            '''
-            rfx += -objScale * 2 * (spread + (((len(grid)/3)/2)**2+((len(grid)/3)/2)**2)**.5  - distance) * math.cos(theta) *  (float(quadrant[q])/(float(len(grid))/float(3)))
-            rfy += -objScale * 2 * (spread + (((len(grid)/3)/2)**2+((len(grid)/3)/2)**2)**.5  - distance) * math.sin(theta) *  (float(quadrant[q])/(float(len(grid))/float(3)))
-            '''
-
-           
-    #print "returning: "+str(fx+rfx*shrinkCase)+" "+str(fx+rfx*shrinkCase)+" "+str(quadrant)+" "
-        #sx,sy=fx+rfx*shrinkCase, fy+rfy*shrinkCase
-        print rfx,rfy
-        #print "gridlength", len(grid)
-        #print "q1,"+str(quadrant[0])+"q2,"+str(quadrant[1])+"q3,"+str(quadrant[2])
-        #print "q4,"+str(quadrant[3])+"q5,"+str(quadrant[4])+"q6,"+str(quadrant[5])
-        #print "q7,"+str(quadrant[6])+"q8,"+str(quadrant[7])+"q9,"+str(quadrant[8])
+        
         return .05*rfx, .05*rfy
                             
                         
