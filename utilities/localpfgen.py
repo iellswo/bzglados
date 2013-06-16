@@ -25,37 +25,6 @@ class PFGEN:
     def update(self, GL, GR, GS):
         self.goal={'radius' : float(GR),'center' : GL, 'type' : "pull", 'scale' : float(GS)}
         
-   
-    ########################################################################
-    # Field and Obstacle Definitions
-
-
-        #this determines our arrow at the point x y I've added the attractive field case
-     
-       
-    def generate_repulsive_fields(self, x, y):
-        
-        fx = 0.0
-        fy = 0.0
-        
-        for fg in self.fieldGenerators:
-            if fg['type'] == 'push':
-                #print fg
-                distance = math.sqrt( (fg['center'][0] - x)**2 +  (fg['center'][1] - y)**2 )
-                theta=math.atan2((fg['center'][1] - y), (fg['center'][0] - x))
-            
-                if distance<fg['radius']:
-                    fx += -math.copysign(10, math.cos(theta))
-                    fy += -math.copysign(10, math.sin(theta))
-                elif fg['radius'] <= distance <= (self.spread + fg['radius']):
-                    fx += -fg['scale'] * (self.spread + fg['radius'] - distance) * math.cos(theta)
-                    fy += -fg['scale'] * (self.spread + fg['radius'] - distance) * math.sin(theta)
-                elif distance>(self.spread+fg['radius']):
-                    fx += 0.0
-                    fy += 0.0
-                
-        return fx, fy
-    
     def generate_attractive_fields(self, x, y, fg):
         
         fx = 0.0
@@ -74,47 +43,18 @@ class PFGEN:
             fy = fg['scale'] * math.sin(theta)
         
         return fx, fy
-        
-    def generate_tangental_fields(self,x, y):
-        
-        fx = 0.0
-        fy = 0.0
-        
-        for fg in self.fieldGenerators:
-            if fg['type'] == 'push':
-                #print fg
-                distance = math.sqrt( (fg['center'][0] - x)**2 +  (fg['center'][1] - y)**2 )
-                theta = math.atan2((fg['center'][1] - y), (fg['center'][0] - x)) + math.pi/4
-            
-                if distance<fg['radius']:
-                    fx += -math.copysign(50, math.cos(theta))
-                    fy += -math.copysign(50, math.sin(theta))
-                elif fg['radius'] <= distance <= (self.spread + fg['radius']):
-                    fx += -fg['scale']*2 * (self.spread + fg['radius'] - distance) * math.cos(theta)
-                    fy += -fg['scale']*2 * (self.spread + fg['radius'] - distance) * math.sin(theta)
-                elif distance>(self.spread+fg['radius']):
-                    fx += 0.0
-                    fy += 0.0
-                
-        return fx, fy
 
-    def generate_fields(self, x, y,grid):
+
+    def generate_fields(self, x, y, grid):
         
         x1, y1 = self.generate_attractive_fields(x, y, self.goal)
         
-        x2, y2 =self.use_grid(grid,x,y,self.goal['center'][0],self.goal['center'][1],1)
+        x2, y2 =self.use_grid(grid,x,y)
         
         return (x+x1+x2), (y+y1+y2)
-                  
-    
-   
 
-    ########################################################################
-    # Helper Functions
 
-  
-    
-    def use_grid(self, grid,x,y,gx,gy,ocupiedVal):
+    def use_grid(self, grid, x, y):
          
         if x < (-self.worldSize/2)+50 or y < (-self.worldSize/2)+50 or x > (self.worldSize/2-51) or y > (self.worldSize/2-51):
            
@@ -131,9 +71,8 @@ class PFGEN:
         [x-(len(grid)/3),y]              ,[x,y]              ,[x+(len(grid)/3),y],
         [x-(len(grid)/3),y-(len(grid)/3)],[x,y-(len(grid)/3)],[x+(len(grid)/3),y-(len(grid)/3)]
         ]
-        
-        
-        
+
+        ocupiedVal = 1
         #this loop populates the array 'quadrant' with number of occupied cells
         for i in range(0,len(grid)):
             for j in range(0,len(grid)):
@@ -181,43 +120,15 @@ class PFGEN:
         rfx=0
         rfy=0
 
-       
-        
-        
         for q in range(0,len(quadrant)):
             if not q==4:
                 distance = math.sqrt( (center[q][0] - x)**2 +  (center[q][1] - y)**2 )
-                theta = math.atan2((center[q][1] - y), (center[q][0] - x)) + math.pi/4
-                rfx += -math.copysign(50, math.cos(theta))*  (float(quadrant[q])/(float(len(grid))/float(3))**2)
-                rfy += -math.copysign(50, math.sin(theta))*  (float(quadrant[q])/(float(len(grid))/float(3))**2)
-        
-        return .05*rfx, .05*rfy
-                            
-                        
-
-    def obsRadiusAndCenter(self, tup):
-        xmin=float("inf")
-        xmax=float("-inf")
-        ymin=float("inf")
-        ymax=float("-inf")
-        for pairs in tup:
-            if float(pairs[0])>xmax:
-                xmax=float(pairs[0])
-            if float(pairs[0])<xmin:
-                xmin=float(pairs[0])
-            if float(pairs[1])>ymax:
-                ymax=float(pairs[1])
-            if float(pairs[1])<ymin:
-                ymin=float(pairs[1])
-        temp = ( ( math.sqrt( float(xmax-xmin)**2 + float(ymax-ymin)**2)/2 ), 
-        (float(xmax-xmin)/2 + xmin, float(ymax-ymin)/2 + ymin), 
-        "push")
-        fg = {'radius' : temp[0], 'center' : temp[1], 'type' : temp[2], 'scale' : .5}
-        self.fieldGenerators.append(fg)
-        
-        return temp
-          
-
+                theta = math.atan2((center[q][1] - y), (center[q][0] - x))
+                #rfx += -math.copysign(50, math.cos(theta))*  (float(quadrant[q])/(float(len(grid))/float(3))**2)
+                #rfy += -math.copysign(50, math.sin(theta))*  (float(quadrant[q])/(float(len(grid))/float(3))**2)
+                rfx += -self.obsScale * (float(quadrant[q])/(len(grid)**2/9.0)) * (len(grid)*math.sqrt(2)/2 - distance) * math.cos(theta)
+                rfy += -self.obsScale * (float(quadrant[q])/(len(grid)**2/9.0)) * (len(grid)*math.sqrt(2)/2 - distance) * math.sin(theta)
+        return rfx, rfy
 
 
 

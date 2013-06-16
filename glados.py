@@ -15,7 +15,6 @@ from numpy import zeros
 from utilities.bzrc import BZRC, Command
 from utilities.kalman import KalmanFilter as Filter
 from utilities.localpfgen import PFGEN as Generator
-from utilities.pygamedrawutil import DrawUtil # painter
 
 ###########################################################
 #  constants
@@ -27,7 +26,7 @@ NOISE = 3
 SPREAD = 10
 
 # What is the Obstacle Scale?
-SCALE = .6
+SCALE = .18
 
 # What is the scale of the flag?
 FSCALE = .75
@@ -73,11 +72,9 @@ class Controller(object):
         
         self.base = find(lambda base: base.color == self.team, self.bzrc.get_bases())
 
-        self.painter=DrawUtil(self.world_size) #painter
-
         for tank in self.mytanks:
-            self.states.append(State.Runner)
-        #self.states[-1] = State.Hunter
+            self.states.append(State.Shadow)
+        #self.states[-1] = State.Runner
         
         self.filters = []
         for tank in self.enemies:
@@ -85,6 +82,17 @@ class Controller(object):
             
         self.compass = Generator(self.world_size, SPREAD, SCALE)
         
+    # initial spread out-ness
+    def spread(self):
+        self.mytanks, othertanks, flags, shots = self.bzrc.get_lots_o_stuff()
+        for tank in self.mytanks:
+            index = tank.index
+            if self.base.corner1_x < 0:
+                t_x = self.base.corner1_x + ((index%3) * 15)
+            else:
+                t_x = self.base.corner1_x - ((index%3) * 15)
+            t_y = ((index%3) * 20) - 20
+            self.move_to_position(tank, (t_x, t_y))
 
     # every tick:
     def tick(self, time_diff):
@@ -101,17 +109,8 @@ class Controller(object):
             #print index
             if enemigo.status != 'alive':
                 continue
-                
-            self.painter.add_observed((enemigo.x,enemigo.y)) # painter
             
             self.filters[index].update((enemigo.x, enemigo.y), time_diff)
-            # painter
-            if index == 0:
-                x, y = self.filters[0].get_enemy_position()
-                
-                self.painter.change_enemy_position((x, y)) # /painter
-            
-        self.painter.update_display() # painter
             
         for tank, state in zip(self.mytanks, self.states):
             if state == State.Dead:
@@ -119,7 +118,10 @@ class Controller(object):
             if tank.status != 'alive':
                 self.states[tank.index] == State.Dead
                 continue
-            self.tank_control(tank, state)
+            tank.state = state
+            
+        for tank in self.mytanks:
+            self.tank_control(tank, tank.state)
         
         results = self.bzrc.do_commands(self.commands)
 
@@ -158,21 +160,13 @@ class Controller(object):
             mode = FireMode.Semi
             
         elif state == State.Shadow:
-            best_ally = None
-            best_dist = 2.0 * self.world_size
-            for ally in self.mytanks:
-                if ally.status != 'alive':
-                    continue
-                dist = self.distance((tank.x, tank.y), (ally.x, ally.y))
-                if dist < best_dist:
-                    best_dist = dist
-                    best_ally = ally
-            if best_ally is None:
+            ally = find(lambda tank: tank.state == State.Runner, self.mytanks)
+            if ally is None:
                 self.states[index] = State.Runner
                 command = Command(index, 0, 0, False)
                 self.commands.append(command)
                 return
-            goal = (ally.x, ally.y)
+            goal = (ally.x-(3*ally.vx), ally.y-(3*tank.vy))
             mode = FireMode.Semi
         
         else:
@@ -183,10 +177,10 @@ class Controller(object):
             start, grid = self.bzrc.get_occgrid(tank.index)
             self.compass.update(goal, RADIUS, FSCALE)
             m0veto = self.compass.generate_fields(tank.x, tank.y, grid)
-            print (tank.x, tank.y), ":", m0veto
+
             self.move_to_position(tank, m0veto)
         except Exception:
-            print 'crisis averted'
+            # print 'crisis averted'
             return
         # targeting code here.
         
@@ -241,9 +235,18 @@ def main():
     prev_time = time.time()
   
     # Run the agent
+    
+    # Spread the tanks:
+    now = time.time()
+    while now - prev_time < 2:
+        agent.spread()
+        now = time.time()
+        
+    prev_time = time.time()
+    
+    # Run until it's done
     try:
         while True:
-            
             now = time.time()
             time_diff = now - prev_time
             prev_time = now
