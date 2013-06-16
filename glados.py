@@ -26,13 +26,19 @@ NOISE = 3
 SPREAD = 10
 
 # What is the Obstacle Scale?
-SCALE = .18
+SCALE = .09
 
 # What is the scale of the flag?
 FSCALE = .75
 
 # What is the goal Radius?
 RADIUS = 2.5
+
+# Kalman filter fudge factor:
+FUDGE = 1
+
+# what is the cone of fire?
+COF = .5
 
 #
 ###########################################################
@@ -44,7 +50,7 @@ def find(f, seq):
             return item
 
 class State:
-    Runner, Captor, Hunter, Shadow, Dead = range(5)
+    Runner, Hunter, Shadow, Dead = range(4)
     
 class FireMode:
     Safety, Semi, Auto = range(3)
@@ -72,27 +78,23 @@ class Controller(object):
         
         self.base = find(lambda base: base.color == self.team, self.bzrc.get_bases())
 
+        self.shot_speed = float(self.constants['shotspeed'])
+
         for tank in self.mytanks:
             self.states.append(State.Shadow)
-        #self.states[-1] = State.Runner
+        self.states[-1] = State.Runner
+        self.states[2] = State.Runner
+        if len(self.mytanks) > 6:
+            self.states[3] = State.Runner
+            self.states[-2] = State.Hunter
+        self.states[0] = State.Runner
+        self.states[1] = State.Hunter
         
         self.filters = []
         for tank in self.enemies:
             self.filters.append(Filter(NOISE))
             
         self.compass = Generator(self.world_size, SPREAD, SCALE)
-        
-    # initial spread out-ness
-    def spread(self):
-        self.mytanks, othertanks, flags, shots = self.bzrc.get_lots_o_stuff()
-        for tank in self.mytanks:
-            index = tank.index
-            if self.base.corner1_x < 0:
-                t_x = self.base.corner1_x + ((index%3) * 15)
-            else:
-                t_x = self.base.corner1_x - ((index%3) * 15)
-            t_y = ((index%3) * 20) - 20
-            self.move_to_position(tank, (t_x, t_y))
 
     # every tick:
     def tick(self, time_diff):
@@ -113,14 +115,14 @@ class Controller(object):
             self.filters[index].update((enemigo.x, enemigo.y), time_diff)
             
         for tank, state in zip(self.mytanks, self.states):
-            if state == State.Dead:
-                continue
             if tank.status != 'alive':
                 self.states[tank.index] == State.Dead
-                continue
+                state = State.Dead
             tank.state = state
             
         for tank in self.mytanks:
+            if tank.state == State.Dead:
+                continue
             self.tank_control(tank, tank.state)
         
         results = self.bzrc.do_commands(self.commands)
@@ -132,8 +134,13 @@ class Controller(object):
         mode = None
         index = tank.index
         if state == State.Runner:
-            goal = (self.flag.x, self.flag.y)
-            mode = FireMode.Safety
+            if tank.flag != '-':
+                base_center_x = float(self.base.corner1_x + self.base.corner3_x)/2
+                base_center_y = float(self.base.corner1_y + self.base.corner3_y)/2
+                goal = (base_center_x, base_center_y)
+            else:
+                goal = (self.flag.x, self.flag.y)
+            mode = FireMode.Semi
         
         elif state == State.Hunter:
             best_enemy = None
@@ -150,23 +157,20 @@ class Controller(object):
                 command = Command(index, 0, 0, False)
                 self.commands.append(command)
                 return
-            goal = self.filters[best_enemy.index].get_enemy_position()
+            time = (best_dist/self.shot_speed)*FUDGE
+            goal = self.filters[best_enemy.index].get_target(time)
             mode = FireMode.Auto
-        
-        elif state == State.Captor:
-            base_center_x = float(self.base.corner1_x + self.base.corner3_x)/2
-            base_center_y = float(self.base.corner1_y + self.base.corner3_y)/2
-            goal = (base_center_x, base_center_y)
-            mode = FireMode.Semi
             
         elif state == State.Shadow:
             ally = find(lambda tank: tank.state == State.Runner, self.mytanks)
             if ally is None:
                 self.states[index] = State.Runner
+                tank.state = State.Runner
                 command = Command(index, 0, 0, False)
                 self.commands.append(command)
                 return
-            goal = (ally.x-(3*ally.vx), ally.y-(3*tank.vy))
+            #print ally.vx, ally.vy
+            goal = (ally.x-(.75*ally.vx), ally.y-(.75*ally.vy))
             mode = FireMode.Semi
         
         else:
@@ -183,8 +187,37 @@ class Controller(object):
             # print 'crisis averted'
             return
         # targeting code here.
-        
+        if mode == FireMode.Auto:
+            target_x, target_y = goal
+            target_angle = math.atan2(target_y - tank.y,
+                                      target_x - tank.x)
+            relative_angle = self.normalize_angle(target_angle - tank.angle)
+            if abs(relative_angle) <= COF and self.distance(goal, (tank.x, tank.y)) < 100:
+                self.bzrc.shoot(tank.index)
+                self.itch()
+                self.bzrc.shoot(tank.index)
+                self.itch()
+                self.bzrc.shoot(tank.index)
+        if mode == FireMode.Semi or mode == FireMode.Auto:
+            # test for safety
+            if self.safe_shot(tank):
+                self.bzrc.shoot(tank.index)
 
+    def safe_shot(self, tank):
+        safe = True
+        for othertank in self.mytanks:
+            if tank.index == othertank.index:
+                continue
+            target_angle = math.atan2(othertank.y - tank.y,
+                                      othertank.x - tank.x)
+            relative_angle = self.normalize_angle(target_angle - tank.angle)
+            safe = safe and abs(relative_angle) > COF
+            if not safe:
+                break
+        return safe
+
+    def itch(self):
+        pass
                 
     def move_to_position(self, tank, target):
         """Set command to move to given coordinates."""
@@ -236,12 +269,6 @@ def main():
   
     # Run the agent
     
-    # Spread the tanks:
-    now = time.time()
-    while now - prev_time < 2:
-        agent.spread()
-        now = time.time()
-        
     prev_time = time.time()
     
     # Run until it's done
