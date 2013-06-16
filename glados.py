@@ -24,10 +24,16 @@ from utilities.pygamedrawutil import DrawUtil # painter
 NOISE = 3
 
 # What is the spread used by the potential fields?
-SPREAD = 26
+SPREAD = 10
 
 # What is the Obstacle Scale?
-SCALE = 3
+SCALE = .6
+
+# What is the scale of the flag?
+FSCALE = .75
+
+# What is the goal Radius?
+RADIUS = 2.5
 
 #
 ###########################################################
@@ -69,9 +75,9 @@ class Controller(object):
 
         self.painter=DrawUtil(self.world_size) #painter
 
-        for tank in mytanks:
+        for tank in self.mytanks:
             self.states.append(State.Runner)
-        self.states[-1] = State.Hunter
+        #self.states[-1] = State.Hunter
         
         self.filters = []
         for tank in self.enemies:
@@ -143,7 +149,6 @@ class Controller(object):
                 self.commands.append(command)
                 return
             goal = self.filters[best_enemy.index].get_enemy_position()
-            #print goal
             mode = FireMode.Auto
         
         elif state == State.Captor:
@@ -174,10 +179,11 @@ class Controller(object):
             goal = (self.flag.x, self.flag.y)
             mode = FireMode.Safety
         
-        g_x, g_y = goal
         try:
             start, grid = self.bzrc.get_occgrid(tank.index)
-            m0veto = self.compass.use_grid(grid, tank.x, tank.y, g_x, g_y, 1)
+            self.compass.update(goal, RADIUS, FSCALE)
+            m0veto = self.compass.generate_fields(tank.x, tank.y, grid)
+            print (tank.x, tank.y), ":", m0veto
             self.move_to_position(tank, m0veto)
         except Exception:
             print 'crisis averted'
@@ -192,7 +198,7 @@ class Controller(object):
         target_angle = math.atan2(target_y - tank.y,
                                   target_x - tank.x)
         relative_angle = self.normalize_angle(target_angle - tank.angle)
-        relative_angle = relative_angle
+        relative_angle = relative_angle/1.5
         command = Command(tank.index, max(-.05, .8-abs(relative_angle)), relative_angle, False)
         self.commands.append(command)
         

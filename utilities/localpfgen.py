@@ -224,13 +224,13 @@ class PFGEN:
 
            
     #print "returning: "+str(fx+rfx*shrinkCase)+" "+str(fx+rfx*shrinkCase)+" "+str(quadrant)+" "
-        sx,sy=fx+rfx*shrinkCase, fy+rfy*shrinkCase
+        #sx,sy=fx+rfx*shrinkCase, fy+rfy*shrinkCase
         print rfx,rfy
-        print "gridlength", len(grid)
-        print "q1,"+str(quadrant[0])+"q2,"+str(quadrant[1])+"q3,"+str(quadrant[2])
-        print "q4,"+str(quadrant[3])+"q5,"+str(quadrant[4])+"q6,"+str(quadrant[5])
-        print "q7,"+str(quadrant[6])+"q8,"+str(quadrant[7])+"q9,"+str(quadrant[8])
-        return .01*rfx, .01*rfy
+        #print "gridlength", len(grid)
+        #print "q1,"+str(quadrant[0])+"q2,"+str(quadrant[1])+"q3,"+str(quadrant[2])
+        #print "q4,"+str(quadrant[3])+"q5,"+str(quadrant[4])+"q6,"+str(quadrant[5])
+        #print "q7,"+str(quadrant[6])+"q8,"+str(quadrant[7])+"q9,"+str(quadrant[8])
+        return .05*rfx, .05*rfy
                             
                         
 
